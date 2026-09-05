@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教師學生晤談預約月曆</title>
+  <style>
+    :root {
+      --primary-color: #0f766e;
+      --border-color: #e2e8f0;
+      --bg-light: #f8fafc;
+      --danger-color: #ef4444;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      padding-bottom: 40px;
+      background-color: #f1f5f9;
+      color: #1e293b;
+    }
+
+    .header-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #0f172a;
+      margin: 0;
+      font-size: 1.8rem;
+    }
+
+    .app-layout {
+      display: flex;
+      gap: 15px;
+      max-width: 1600px;
+      margin: 0 auto;
+      align-items: flex-start;
+      position: relative;
+    }
+
+    .sidebar-left {
+      width: 220px;
+      flex-shrink: 0;
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-header-mobile {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .close-sidebar-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: #64748b;
+    }
+
+    .filter-section-title {
+      font-weight: bold;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      color: #334155;
+    }
+
+    .toggle-group {
+      display: flex;
+      background: #e2e8f0;
+      border-radius: 6px;
+      padding: 2px;
+      margin-bottom: 15px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 6px;
+      font-size: 0.85rem;
+      text-align: center;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #475569;
+      font-weight: bold;
+    }
+
+    .toggle-btn.active {
+      background: #0f766e;
+      color: white;
+    }
+
+    .select-input {
+      width: 100%;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.85rem;
+      margin-bottom: 15px;
+    }
+
+    .filter-tag-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-btn {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .filter-btn.all {
+      background: #386641;
+      color: white;
+      border-radius: 6px;
+    }
+
+    /* 新增：Google 日曆同步按鈕樣式 */
+    .btn-sync-gcal {
+      width: 100%;
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #4285F4;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(66, 133, 244, 0.3);
+      transition: background-color 0.2s;
+    }
+
+    .btn-sync-gcal:hover {
+      background-color: #2b6cb0;
+    }
+
+    .main-calendar {
+      flex: 1;
+      min-width: 0;
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .calendar-vertical-list {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .month-card { background: #fff; }
+
+    .month-title {
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #0f766e;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .weekday-header {
+      text-align: center;
+      font-weight: bold;
+      padding: 8px 0;
+      background: #f1f5f9;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: #475569;
+    }
+
+    .day-cell {
+      min-height: 100px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 4px;
+      background: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .day-cell:hover { background-color: #f0f9ff; }
+
+    .day-cell.other-month {
+      background: #f8fafc;
+      color: #94a3b8;
+      cursor: default;
+    }
+
+    .day-number {
+      font-weight: bold;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    .event-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 4px;
+      border-radius: 4px;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .event-tag .event-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .event-tag .delete-btn {
+      cursor: pointer;
+      margin-left: 2px;
+      font-weight: bold;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    .sidebar-right {
+      width: 260px;
+      flex-shrink: 0;
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+    }
+
+    .manage-card {
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 15px;
+    }
+
+    .manage-card h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+      color: #0f766e;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .input-group input {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    .input-group button {
+      flex-shrink: 0;
+      width: auto;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .manage-tag {
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid transparent;
+    }
+
+    .manage-tag .delete-btn {
+      cursor: pointer;
+      font-weight: bold;
+      opacity: 0.6;
+    }
+
+    /* 右下角動作按鈕區塊 */
+    .action-btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .action-btn {
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 0.88rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      text-align: center;
+    }
+
+    .btn-semester {
+      background-color: #188085;
+      color: #FFFFFF;
+      box-shadow: 0 2px 5px rgba(24, 128, 133, 0.3);
+    }
+
+    .btn-semester:hover {
+      background-color: #116165;
+    }
+
+    .btn-danger {
+      background-color: #E65942;
+      box-shadow: 0 2px 5px rgba(230, 89, 66, 0.25);
+    }
+
+    .btn-danger:hover {
+      background-color: #C9422C;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 450px;
+    }
+
+    .modal-header {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .form-group { margin-bottom: 15px; }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .form-group select, .form-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-primary { background: #5E8E16; color: #FFFFFF; }
+    .btn-secondary { background: #cbd5e1; color: #334155; }
+
+    #loadingOverlay {
+      display: flex;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(255,255,255,0.7);
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #0f766e;
+      z-index: 3000;
+    }
+
+    .mobile-nav-bar {
+      display: none;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 12px;
+      gap: 10px;
+    }
+
+    .mobile-nav-btn {
+      flex: 1;
+      background-color: #0f766e;
+      color: white;
+      padding: 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      border: none;
+    }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+
+    .sidebar-overlay.active {
+      display: block;
+    }
+
+    /* ===== 手機版響應式設定 ===== */
+    @media (max-width: 768px) {
+      body {
+        padding: 2px;
+      }
+
+      .mobile-nav-bar {
+        display: flex;
+      }
+
+      .sidebar-left, .sidebar-right {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        height: 100vh;
+        overflow-y: auto;
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        border-radius: 0;
+      }
+
+      .sidebar-left {
+        left: 0;
+        transform: translateX(-100%);
+      }
+
+      .sidebar-right {
+        right: 0;
+        transform: translateX(100%);
+      }
+
+      .sidebar-left.open, .sidebar-right.open {
+        transform: translateX(0);
+      }
+
+      .sidebar-header-mobile {
+        display: flex;
+      }
+
+      .main-calendar {
+        padding: 2px;
+      }
+
+      .calendar-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 2px;
+      }
+
+      .calendar-grid > :nth-child(7n+1),
+      .calendar-grid > :nth-child(7n) {
+        display: none !important;
+      }
+
+      .weekday-header {
+        font-size: 0.75rem;
+        padding: 4px 0;
+      }
+
+      .day-cell {
+        min-height: 70px;
+        padding: 2px;
+      }
+
+      .day-number {
+        font-size: 0.7rem;
+        margin-bottom: 2px;
+      }
+
+      .event-tag {
+        font-size: 0.62rem;
+        padding: 3px;
+        margin-bottom: 2px;
+        display: block;
+        white-space: normal;
+        word-break: break-all;
+        line-height: 1.25;
+        border-radius: 3px;
+      }
+
+      .event-tag .event-text {
+        white-space: normal;
+        overflow: visible;
+        display: inline;
+      }
+
+      .event-tag .delete-btn {
+        display: none !important;
+      }
+
+      .manage-card {
+        min-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay">資料同步載入中...</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebars()"></div>
+
+<div class="header-container">
+  <h1>教師學生晤談預約月曆</h1>
+</div>
+
+<div class="mobile-nav-bar">
+  <button class="mobile-nav-btn" onclick="openSidebar('left')">🔍 晤談篩選</button>
+  <button class="mobile-nav-btn" onclick="openSidebar('right')">⚙️ 名單管理</button>
+</div>
+
+<div class="app-layout">
+  <div class="sidebar-left" id="sidebarLeft">
+    <div class="sidebar-header-mobile">
+      <span>晤談篩選</span>
+      <button class="close-sidebar-btn" onclick="closeSidebars()">&times;</button>
+    </div>
+
+    <div class="filter-section-title">顯示晤談：</div>
+    <div class="toggle-group">
+      <button class="toggle-btn active" id="btnShowTeacher" onclick="setFilterType('teacher')">教師</button>
+      <button class="toggle-btn" id="btnShowStudent" onclick="setFilterType('student')">學生</button>
+    </div>
+
+    <div class="filter-section-title">標籤著色依據：</div>
+    <select id="colorModeSelect" class="select-input" onchange="renderCalendars()">
+      <option value="teacher">教師顏色</option>
+      <option value="student">學生顏色</option>
+    </select>
+
+    <div class="filter-tag-list" id="filterTagList"></div>
+
+    <!-- 動態顯示 Google 日曆同步按鈕區塊 -->
+    <div id="calendarSyncContainer"></div>
+  </div>
+
+  <div class="main-calendar">
+    <div class="calendar-vertical-list" id="calendarList"></div>
+  </div>
+
+  <div class="sidebar-right" id="sidebarRight">
+    <div class="sidebar-header-mobile">
+      <span>名單管理</span>
+      <button class="close-sidebar-btn" onclick="closeSidebars()">&times;</button>
+    </div>
+
+    <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 15px; color: #1e293b;">名單管理</div>
+    
+    <div class="manage-card">
+      <h3>教師名單管理</h3>
+      <div class="input-group">
+        <input type="text" id="newTeacherInput" placeholder="教師姓名">
+        <button class="btn-primary" onclick="addTeacher()">新增</button>
+      </div>
+      <div class="tag-list" id="teacherTagList"></div>
+    </div>
+
+    <div class="manage-card">
+      <h3>學生名單管理</h3>
+      <div class="input-group">
+        <input type="text" id="newStudentInput" placeholder="學生姓名">
+        <button class="btn-primary" onclick="addStudent()">新增</button>
+      </div>
+      <div class="tag-list" id="studentTagList"></div>
+    </div>
+
+    <div class="action-btn-group">
+       <button class="action-btn btn-semester" onclick="loadSemesterCalendar(1)">📅 載入上學期月曆 (9月~1月)</button>
+       <button class="action-btn btn-semester" onclick="loadSemesterCalendar(2)">📅 載入下學期月曆 (2月-6月)</button>
+       <button class="action-btn btn-danger" onclick="clearAllData()">🗑️ 清除所有晤談紀錄</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="eventModal">
+  <div class="modal-content">
+    <div class="modal-header" id="modalTitle">新增晤談紀錄</div>
+    
+    <div class="form-group">
+      <label for="teacherSelect">選擇老師：</label>
+      <select id="teacherSelect"></select>
+    </div>
+
+    <div class="form-group">
+      <label for="periodSelect">選擇時段：</label>
+      <select id="periodSelect"></select>
+    </div>
+
+    <div class="form-group">
+      <label for="studentSelect">選擇學生：</label>
+      <select id="studentSelect"></select>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="saveEvent()">儲存紀錄</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let teachers = [];
+  let students = [];
+  let rawAppointments = []; 
+  const periods = ["第一節", "第二節", "第三節", "第四節", "午休", "第五節", "第六節", "第七節", "第八節"];
+
+  let selectedDateStr = "";
+  let activeFilterType = 'teacher';
+  let currentFilterValue = 'ALL';
+  let currentSemester = 0;
+
+  const basePalette = [
+    { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
+    { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' },
+    { bg: '#dcfce7', border: '#86efac', text: '#166534' },
+    { bg: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8' },
+    { bg: '#fef3c7', border: '#fde047', text: '#854d0e' },
+    { bg: '#fce7f3', border: '#f472b6', text: '#9d174d' },
+    { bg: '#cff4fc', border: '#a5f3fc', text: '#155e75' },
+    { bg: '#ffedd5', border: '#fed7aa', text: '#9a3412' },
+    { bg: '#e2e8f0', border: '#cbd5e1', text: '#334155' },
+    { bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46' }
+  ];
+
+  function openSidebar(side) {
+    closeSidebars();
+    if (side === 'left') {
+      document.getElementById('sidebarLeft').classList.add('open');
+    } else if (side === 'right') {
+      document.getElementById('sidebarRight').classList.add('open');
+    }
+    document.getElementById('sidebarOverlay').classList.add('active');
+  }
+
+  function closeSidebars() {
+    document.getElementById('sidebarLeft').classList.remove('open');
+    document.getElementById('sidebarRight').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  }
+
+  function showLoading(show) {
+    document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+  }
+
+  window.onload = function() {
+    const currentMonth = new Date().getMonth();
+    currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
+    fetchCloudData();
+  };
+
+  function fetchCloudData() {
+    showLoading(true);
+    google.script.run.withSuccessHandler(function(lists) {
+      teachers = lists.teachers || [];
+      students = lists.students || [];
+
+      google.script.run.withSuccessHandler(function(data) {
+        rawAppointments = data || [];
+        showLoading(false);
+        updateAllUI();
+      }).getAppointments();
+
+    }).getLists();
+  }
+
+  function getColorForEntity(name, type) {
+    const list = (type === 'teacher') ? teachers : students;
+    const index = list.indexOf(name);
+    
+    if (index === -1) return { bg: '#f1f5f9', border: '#cbd5e1', text: '#475569' };
+    if (index < basePalette.length) return basePalette[index];
+
+    const hue = (index * 137.5) % 360; 
+    return {
+      bg: `hsl(${hue}, 70%, 90%)`,
+      border: `hsl(${hue}, 60%, 75%)`,
+      text: `hsl(${hue}, 80%, 25%)`
+    };
+  }
+
+  function loadSemesterCalendar(semester) {
+    currentSemester = semester;
+    renderCalendars();
+    closeSidebars();
+  }
+
+  function setFilterType(type) {
+    activeFilterType = type;
+    currentFilterValue = 'ALL';
+    document.getElementById('btnShowTeacher').className = `toggle-btn ${type === 'teacher' ? 'active' : ''}`;
+    document.getElementById('btnShowStudent').className = `toggle-btn ${type === 'student' ? 'active' : ''}`;
+    renderFilterButtons();
+    renderCalendars();
+  }
+
+  function setFilterValue(val) {
+    currentFilterValue = val;
+    renderFilterButtons();
+    renderCalendars();
+  }
+
+  function renderFilterButtons() {
+    const container = document.getElementById('filterTagList');
+    const syncContainer = document.getElementById('calendarSyncContainer');
+    const list = activeFilterType === 'teacher' ? teachers : students;
+    const label = activeFilterType === 'teacher' ? '全部教師' : '全部學生';
+
+    let html = `<button class="filter-btn all" onclick="setFilterValue('ALL')" style="${currentFilterValue === 'ALL' ? 'outline:2px solid #0f766e;' : ''}">${label}</button>`;
+
+    list.forEach(item => {
+      const colors = getColorForEntity(item, activeFilterType);
+      const isSelected = currentFilterValue === item;
+      html += `<button class="filter-btn" onclick="setFilterValue('${item}')" style="background:${colors.bg}; border-color:${colors.border}; color:${colors.text}; ${isSelected ? 'box-shadow: 0 0 0 2px #0f766e;' : ''}">
+                ${item}
+              </button>`;
+    });
+
+    container.innerHTML = html;
+
+    // 當選擇「單一教師」檢視時，提供同步到 Google 日曆的功能
+    if (activeFilterType === 'teacher' && currentFilterValue !== 'ALL') {
+      syncContainer.innerHTML = `
+        <button class="btn-sync-gcal" onclick="syncTeacherToGoogleCalendar('${currentFilterValue}')">
+          📅 同步「${currentFilterValue}」晤談至 Google 日曆
+        </button>
+      `;
+    } else {
+      syncContainer.innerHTML = '';
+    }
+  }
+
+  function syncTeacherToGoogleCalendar(teacherName) {
+  const teacherEvents = rawAppointments.filter(evt => evt.teacher === teacherName);
+  
+  if (teacherEvents.length === 0) {
+    alert(`「${teacherName}」目前沒有任何晤談預約紀錄。`);
+    return;
+  }
+
+  // 1. 讓教師填寫 Google 帳號
+  const userEmail = prompt(`請輸入要同步行程的 Google 帳號 (Email)：`, "");
+  
+  if (userEmail === null) return; // 使用者取消
+  
+  const trimmedEmail = userEmail.trim();
+  if (!trimmedEmail) {
+    alert("請輸入有效的 Google 帳號！");
+    return;
+  }
+
+  if (confirm(`確定要將「${teacherName}」的 ${teacherEvents.length} 筆晤談紀錄同步至 ${trimmedEmail} 的 Google 日曆嗎？`)) {
+    showLoading(true);
+    google.script.run
+      .withSuccessHandler(function(result) {
+        showLoading(false);
+        if (result && result.success) {
+          alert(`同步完成！已成功新增行程至 ${trimmedEmail} 的 Google 日曆。`);
+        } else {
+          alert(`同步失敗：${result ? result.message : '未知錯誤'}`);
+        }
+      })
+      .withFailureHandler(function(err) {
+        showLoading(false);
+        alert(`同步發生錯誤：${err.message}`);
+      })
+      .syncTeacherEventsToCalendar(teacherName, teacherEvents, trimmedEmail);
+  }
+}
+
+  function renderManagementTags() {
+    const tList = document.getElementById('teacherTagList');
+    const sList = document.getElementById('studentTagList');
+
+    tList.innerHTML = teachers.map((t) => {
+      const colors = getColorForEntity(t, 'teacher');
+      return `<div class="manage-tag" style="background:${colors.bg}; border-color:${colors.border}; color:${colors.text};">
+                ${t} <span class="delete-btn" onclick="removeTeacherByName('${t}')">&times;</span>
+              </div>`;
+    }).join('');
+
+    sList.innerHTML = students.map((s) => {
+      const colors = getColorForEntity(s, 'student');
+      return `<div class="manage-tag" style="background:${colors.bg}; border-color:${colors.border}; color:${colors.text};">
+                ${s} <span class="delete-btn" onclick="removeStudentByName('${s}')">&times;</span>
+              </div>`;
+    }).join('');
+  }
+
+  function addTeacher() {
+    const input = document.getElementById('newTeacherInput');
+    const name = input.value.trim();
+    if (name && !teachers.includes(name)) {
+      teachers.push(name);
+      input.value = '';
+      syncListsToCloud();
+    }
+  }
+
+  function removeTeacherByName(name) {
+    teachers = teachers.filter(t => t !== name);
+    syncListsToCloud();
+  }
+
+  function addStudent() {
+    const input = document.getElementById('newStudentInput');
+    const name = input.value.trim();
+    if (name && !students.includes(name)) {
+      students.push(name);
+      input.value = '';
+      syncListsToCloud();
+    }
+  }
+
+  function removeStudentByName(name) {
+    students = students.filter(s => s !== name);
+    syncListsToCloud();
+  }
+
+  function syncListsToCloud() {
+    showLoading(true);
+    google.script.run.withSuccessHandler(function() {
+      showLoading(false);
+      updateAllUI();
+    }).saveLists(teachers, students);
+  }
+
+  function confirmDeleteAppointment(id, event, infoStr) {
+    if (event) event.stopPropagation();
+    if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
+      showLoading(true);
+      google.script.run.withSuccessHandler(function() {
+        fetchCloudData();
+      }).deleteAppointmentById(id);
+    }
+  }
+
+  function updateAllUI() {
+    renderManagementTags();
+    initSelectOptions();
+    renderFilterButtons();
+    renderCalendars();
+  }
+
+  function initSelectOptions() {
+    const tSelect = document.getElementById('teacherSelect');
+    const pSelect = document.getElementById('periodSelect');
+    const sSelect = document.getElementById('studentSelect');
+
+    tSelect.innerHTML = '';
+    pSelect.innerHTML = '';
+    sSelect.innerHTML = '';
+
+    teachers.forEach(t => tSelect.add(new Option(t, t)));
+    students.forEach(s => sSelect.add(new Option(s, s)));
+    periods.forEach(p => pSelect.add(new Option(p, p)));
+  }
+
+  function getMonthRange() {
+    const now = new Date();
+    let currentYear = now.getFullYear();
+    let currentMonth = now.getMonth();
+
+    if (currentSemester === 1) {
+      let startYear = (currentMonth < 7) ? currentYear - 1 : currentYear;
+      return [
+        { year: startYear, month: 8 },
+        { year: startYear, month: 9 },
+        { year: startYear, month: 10 },
+        { year: startYear, month: 11 },
+        { year: startYear + 1, month: 0 }
+      ];
+    } else {
+      let targetYear = (currentMonth >= 7) ? currentYear + 1 : currentYear;
+      return [
+        { year: targetYear, month: 1 },
+        { year: targetYear, month: 2 },
+        { year: targetYear, month: 3 },
+        { year: targetYear, month: 4 },
+        { year: targetYear, month: 5 }
+      ];
+    }
+  }
+
+  function renderCalendars() {
+    const calendarList = document.getElementById('calendarList');
+    calendarList.innerHTML = '';
+    const months = getMonthRange();
+    const colorMode = document.getElementById('colorModeSelect').value;
+
+    const periodShortMap = {
+      "第一節": "1", "第二節": "2", "第三節": "3", "第四節": "4",
+      "午休": "午",
+      "第五節": "5", "第六節": "6", "第七節": "7", "第八節": "8"
+    };
+
+    const isMobile = window.innerWidth <= 768;
+
+    months.forEach(({ year, month }) => {
+      const monthCard = document.createElement('div');
+      monthCard.className = 'month-card';
+
+      const monthTitle = document.createElement('div');
+      monthTitle.className = 'month-title';
+      monthTitle.innerText = `${year} 年 ${month + 1} 月`;
+      monthCard.appendChild(monthTitle);
+
+      const grid = document.createElement('div');
+      grid.className = 'calendar-grid';
+
+      const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+      weekdays.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'weekday-header';
+        header.innerText = day;
+        grid.appendChild(header);
+      });
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const prevDaysInMonth = new Date(year, month, 0).getDate();
+
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'day-cell other-month';
+        emptyCell.innerHTML = `<div class="day-number">${prevDaysInMonth - i}</div>`;
+        grid.appendChild(emptyCell);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayCell = document.createElement('div');
+        dayCell.className = 'day-cell';
+        
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        const dayNumber = document.createElement('div');
+        dayNumber.className = 'day-number';
+        dayNumber.innerText = day;
+        dayCell.appendChild(dayNumber);
+
+        const eventContainer = document.createElement('div');
+
+        const dayEvents = rawAppointments.filter(evt => evt.date === dateStr);
+        dayEvents.sort((a, b) => periods.indexOf(a.period) - periods.indexOf(b.period));
+
+        dayEvents.forEach(evt => {
+          if (currentFilterValue !== "ALL") {
+            if (activeFilterType === 'teacher' && evt.teacher !== currentFilterValue) return;
+            if (activeFilterType === 'student' && evt.student !== currentFilterValue) return;
+          }
+
+          const tag = document.createElement('div');
+          tag.className = 'event-tag';
+          
+          const keyName = (colorMode === 'teacher') ? evt.teacher : evt.student;
+          const colors = getColorForEntity(keyName, colorMode);
+          
+          tag.style.backgroundColor = colors.bg;
+          tag.style.borderColor = colors.border;
+          tag.style.color = colors.text;
+
+          const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
+
+          if (isMobile) {
+            const shortPeriod = periodShortMap[evt.period] || evt.period;
+            tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>`;
+            
+            tag.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              confirmDeleteAppointment(evt.id, e, infoStr);
+            });
+
+          } else {
+            tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>
+                             <span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
+          }
+          
+          eventContainer.appendChild(tag);
+        });
+
+        dayCell.appendChild(eventContainer);
+        dayCell.onclick = () => openModal(dateStr);
+        grid.appendChild(dayCell);
+      }
+
+      const totalCells = firstDay + daysInMonth;
+      const nextDays = (7 - (totalCells % 7)) % 7;
+      for (let day = 1; day <= nextDays; day++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'day-cell other-month';
+        emptyCell.innerHTML = `<div class="day-number">${day}</div>`;
+        grid.appendChild(emptyCell);
+      }
+
+      monthCard.appendChild(grid);
+      calendarList.appendChild(monthCard);
+    });
+  }
+
+  function openModal(dateStr) {
+    selectedDateStr = dateStr;
+    document.getElementById('modalTitle').innerText = `${dateStr} 新增晤談紀錄`;
+    document.getElementById('eventModal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('eventModal').style.display = 'none';
+  }
+
+  function saveEvent() {
+    const teacher = document.getElementById('teacherSelect').value;
+    const period = document.getElementById('periodSelect').value;
+    const student = document.getElementById('studentSelect').value;
+
+    if (!teacher || !student) {
+      alert("請選擇教師與學生！");
+      return;
+    }
+
+    const eventData = {
+      date: selectedDateStr,
+      teacher: teacher,
+      period: period,
+      student: student
+    };
+
+    closeModal();
+    showLoading(true);
+
+    google.script.run.withSuccessHandler(function() {
+      fetchCloudData();
+    }).addAppointment(eventData);
+  }
+
+  // 1. 修正：僅清空預約紀錄，保留教師與學生名單
+  function clearAllData() {
+    if (confirm("⚠️ 警告：這將會【清除月曆上的所有晤談預約紀錄】！（教師與學生名單將會保留），確定要清空嗎？")) {
+      showLoading(true);
+      
+      rawAppointments = []; 
+
+      google.script.run.withSuccessHandler(function() {
+        showLoading(false);
+        updateAllUI();
+      }).clearAppointmentsOnly(); // 呼叫後端專門清空預約紀錄的函數
+    }
+  }
+</script>
+
+</body>
+</html>
