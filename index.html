@@ -141,7 +141,6 @@
       border-radius: 6px;
     }
 
-    /* 新增：Google 日曆同步按鈕樣式 */
     .btn-sync-gcal {
       width: 100%;
       margin-top: 15px;
@@ -335,7 +334,6 @@
       opacity: 0.6;
     }
 
-    /* 右下角動作按鈕區塊 */
     .action-btn-group {
       display: flex;
       flex-direction: column;
@@ -486,7 +484,6 @@
       display: block;
     }
 
-    /* ===== 手機版響應式設定 ===== */
     @media (max-width: 768px) {
       body {
         padding: 2px;
@@ -615,7 +612,6 @@
 
     <div class="filter-tag-list" id="filterTagList"></div>
 
-    <!-- 動態顯示 Google 日曆同步按鈕區塊 -->
     <div id="calendarSyncContainer"></div>
   </div>
 
@@ -684,6 +680,9 @@
 </div>
 
 <script>
+  // 🔗 請填寫你部署後取得的 Web App URL
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrN32fp67oOdDQ5XUx5oZngCX4bEUOFKdl1xSv6j2gtzn-oJ51X_OzFBHdLp95rxj3/exec";
+
   let teachers = [];
   let students = [];
   let rawAppointments = []; 
@@ -733,19 +732,23 @@
     fetchCloudData();
   };
 
+  // 將 google.script.run 改為標準 fetch
   function fetchCloudData() {
     showLoading(true);
-    google.script.run.withSuccessHandler(function(lists) {
-      teachers = lists.teachers || [];
-      students = lists.students || [];
-
-      google.script.run.withSuccessHandler(function(data) {
-        rawAppointments = data || [];
+    fetch(`${GAS_WEB_APP_URL}?action=getAll`)
+      .then(res => res.json())
+      .then(data => {
+        teachers = data.lists ? (data.lists.teachers || []) : [];
+        students = data.lists ? (data.lists.students || []) : [];
+        rawAppointments = data.appointments || [];
         showLoading(false);
         updateAllUI();
-      }).getAppointments();
-
-    }).getLists();
+      })
+      .catch(err => {
+        showLoading(false);
+        alert("資料載入失敗，請確認 API 網址或網路連線！");
+        console.error(err);
+      });
   }
 
   function getColorForEntity(name, type) {
@@ -802,7 +805,6 @@
 
     container.innerHTML = html;
 
-    // 當選擇「單一教師」檢視時，提供同步到 Google 日曆的功能
     if (activeFilterType === 'teacher' && currentFilterValue !== 'ALL') {
       syncContainer.innerHTML = `
         <button class="btn-sync-gcal" onclick="syncTeacherToGoogleCalendar('${currentFilterValue}')">
@@ -815,28 +817,35 @@
   }
 
   function syncTeacherToGoogleCalendar(teacherName) {
-  const teacherEvents = rawAppointments.filter(evt => evt.teacher === teacherName);
-  
-  if (teacherEvents.length === 0) {
-    alert(`「${teacherName}」目前沒有任何晤談預約紀錄。`);
-    return;
-  }
+    const teacherEvents = rawAppointments.filter(evt => evt.teacher === teacherName);
+    
+    if (teacherEvents.length === 0) {
+      alert(`「${teacherName}」目前沒有任何晤談預約紀錄。`);
+      return;
+    }
 
-  // 1. 讓教師填寫 Google 帳號
-  const userEmail = prompt(`請輸入要同步行程的 Google 帳號 (Email)：`, "");
-  
-  if (userEmail === null) return; // 使用者取消
-  
-  const trimmedEmail = userEmail.trim();
-  if (!trimmedEmail) {
-    alert("請輸入有效的 Google 帳號！");
-    return;
-  }
+    const userEmail = prompt(`請輸入要同步行程的 Google 帳號 (Email)：`, "");
+    if (userEmail === null) return;
+    
+    const trimmedEmail = userEmail.trim();
+    if (!trimmedEmail) {
+      alert("請輸入有效的 Google 帳號！");
+      return;
+    }
 
-  if (confirm(`確定要將「${teacherName}」的 ${teacherEvents.length} 筆晤談紀錄同步至 ${trimmedEmail} 的 Google 日曆嗎？`)) {
-    showLoading(true);
-    google.script.run
-      .withSuccessHandler(function(result) {
+    if (confirm(`確定要將「${teacherName}」的 ${teacherEvents.length} 筆晤談紀錄同步至 ${trimmedEmail} 的 Google 日曆嗎？`)) {
+      showLoading(true);
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'syncCalendar',
+          teacherName: teacherName,
+          events: teacherEvents,
+          targetEmail: trimmedEmail
+        })
+      })
+      .then(res => res.json())
+      .then(result => {
         showLoading(false);
         if (result && result.success) {
           alert(`同步完成！已成功新增行程至 ${trimmedEmail} 的 Google 日曆。`);
@@ -844,13 +853,12 @@
           alert(`同步失敗：${result ? result.message : '未知錯誤'}`);
         }
       })
-      .withFailureHandler(function(err) {
+      .catch(err => {
         showLoading(false);
         alert(`同步發生錯誤：${err.message}`);
-      })
-      .syncTeacherEventsToCalendar(teacherName, teacherEvents, trimmedEmail);
+      });
+    }
   }
-}
 
   function renderManagementTags() {
     const tList = document.getElementById('teacherTagList');
@@ -903,19 +911,36 @@
 
   function syncListsToCloud() {
     showLoading(true);
-    google.script.run.withSuccessHandler(function() {
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'saveLists',
+        teachers: teachers,
+        students: students
+      })
+    })
+    .then(res => res.json())
+    .then(() => {
       showLoading(false);
       updateAllUI();
-    }).saveLists(teachers, students);
+    });
   }
 
   function confirmDeleteAppointment(id, event, infoStr) {
     if (event) event.stopPropagation();
     if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
       showLoading(true);
-      google.script.run.withSuccessHandler(function() {
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'deleteAppointment',
+          id: id
+        })
+      })
+      .then(res => res.json())
+      .then(() => {
         fetchCloudData();
-      }).deleteAppointmentById(id);
+      });
     }
   }
 
@@ -1112,22 +1137,34 @@
     closeModal();
     showLoading(true);
 
-    google.script.run.withSuccessHandler(function() {
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'addAppointment',
+        eventData: eventData
+      })
+    })
+    .then(res => res.json())
+    .then(() => {
       fetchCloudData();
-    }).addAppointment(eventData);
+    });
   }
 
-  // 1. 修正：僅清空預約紀錄，保留教師與學生名單
   function clearAllData() {
     if (confirm("⚠️ 警告：這將會【清除月曆上的所有晤談預約紀錄】！（教師與學生名單將會保留），確定要清空嗎？")) {
       showLoading(true);
       
       rawAppointments = []; 
 
-      google.script.run.withSuccessHandler(function() {
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'clearAppointments' })
+      })
+      .then(res => res.json())
+      .then(() => {
         showLoading(false);
         updateAllUI();
-      }).clearAppointmentsOnly(); // 呼叫後端專門清空預約紀錄的函數
+      });
     }
   }
 </script>
