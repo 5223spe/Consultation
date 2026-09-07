@@ -927,22 +927,39 @@
   }
 
   function confirmDeleteAppointment(id, event, infoStr) {
-    if (event) event.stopPropagation();
-    if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
-      showLoading(true);
-      fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'deleteAppointment',
-          id: id
-        })
+  if (event) event.stopPropagation();
+  
+  if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
+    // 1. 先備份被刪除的資料（若伺服器刪除失敗時可還原）
+    const deletedItemIndex = rawAppointments.findIndex(item => item.id === id);
+    if (deletedItemIndex === -1) return;
+    const backupItem = rawAppointments[deletedItemIndex];
+
+    // 2. 【樂觀更新】立刻從前端陣列移除該筆資料，並秒速刷新畫面
+    rawAppointments.splice(deletedItemIndex, 1);
+    updateAllUI();
+
+    // 3. 在背景非同步發送刪除請求（不顯示 Loading 遮罩）
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'deleteAppointment',
+        id: id
       })
-      .then(res => res.json())
-      .then(() => {
-        fetchCloudData();
-      });
-    }
+    })
+    .then(res => res.json())
+    .then(result => {
+      // 刪除成功，背景無聲處理即可
+      console.log('刪除成功:', id);
+    })
+    .catch(err => {
+      // 若後端刪除失敗，提示使用者並還原資料
+      alert(`刪除失敗，請檢查網路連線！\n錯誤訊息：${err.message}`);
+      rawAppointments.splice(deletedItemIndex, 0, backupItem);
+      updateAllUI();
+    });
   }
+}
 
   function updateAllUI() {
     renderManagementTags();
