@@ -37,17 +37,18 @@
       font-size: 1.8rem;
     }
 
+    /* 調整最大寬度為 98%，讓電腦版月曆有更多空間 */
     .app-layout {
-  display: flex;
-  gap: 15px;
-  max-width: 98%; /* 將原本 1600px 改為 98% 或 100%，善用螢幕寬度 */
-  margin: 0 auto;
-  align-items: flex-start;
-  position: relative;
-}
+      display: flex;
+      gap: 15px;
+      max-width: 98%;
+      margin: 0 auto;
+      align-items: flex-start;
+      position: relative;
+    }
 
     .sidebar-left {
-      width: 220px;
+      width: 200px;
       flex-shrink: 0;
       background: #fff;
       border: 1px solid var(--border-color);
@@ -166,7 +167,7 @@
       background: #fff;
       border: 1px solid var(--border-color);
       border-radius: 8px;
-      padding: 20px;
+      padding: 15px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
 
@@ -232,7 +233,7 @@
     .event-tag {
       font-size: 0.72rem;
       font-weight: 600;
-      padding: 3px 4px;
+      padding: 2px 4px;
       border-radius: 4px;
       margin-bottom: 3px;
       display: flex;
@@ -258,7 +259,7 @@
     }
 
     .sidebar-right {
-      width: 260px;
+      width: 240px;
       flex-shrink: 0;
       background: #fff;
       border: 1px solid var(--border-color);
@@ -485,45 +486,27 @@
     }
 
     @media (max-width: 768px) {
-      body {
-        padding: 2px;
-      }
+      body { padding: 2px; }
 
-      .mobile-nav-bar {
-        display: flex;
-      }
+      .mobile-nav-bar { display: flex; }
 
       .sidebar-left, .sidebar-right {
         position: fixed;
-        top: 0;
-        bottom: 0;
+        top: 0; bottom: 0;
         height: 100vh;
         overflow-y: auto;
         box-shadow: 0 0 15px rgba(0,0,0,0.2);
         border-radius: 0;
       }
 
-      .sidebar-left {
-        left: 0;
-        transform: translateX(-100%);
-      }
+      .sidebar-left { left: 0; transform: translateX(-100%); }
+      .sidebar-right { right: 0; transform: translateX(100%); }
 
-      .sidebar-right {
-        right: 0;
-        transform: translateX(100%);
-      }
+      .sidebar-left.open, .sidebar-right.open { transform: translateX(0); }
 
-      .sidebar-left.open, .sidebar-right.open {
-        transform: translateX(0);
-      }
+      .sidebar-header-mobile { display: flex; }
 
-      .sidebar-header-mobile {
-        display: flex;
-      }
-
-      .main-calendar {
-        padding: 2px;
-      }
+      .main-calendar { padding: 2px; }
 
       .calendar-grid {
         grid-template-columns: repeat(5, 1fr);
@@ -535,20 +518,11 @@
         display: none !important;
       }
 
-      .weekday-header {
-        font-size: 0.75rem;
-        padding: 4px 0;
-      }
+      .weekday-header { font-size: 0.75rem; padding: 4px 0; }
 
-      .day-cell {
-        min-height: 70px;
-        padding: 2px;
-      }
+      .day-cell { min-height: 70px; padding: 2px; }
 
-      .day-number {
-        font-size: 0.7rem;
-        margin-bottom: 2px;
-      }
+      .day-number { font-size: 0.7rem; margin-bottom: 2px; }
 
       .event-tag {
         font-size: 0.62rem;
@@ -567,13 +541,9 @@
         display: inline;
       }
 
-      .event-tag .delete-btn {
-        display: none !important;
-      }
+      .event-tag .delete-btn { display: none !important; }
 
-      .manage-card {
-        min-width: 100%;
-      }
+      .manage-card { min-width: 100%; }
     }
   </style>
 </head>
@@ -680,7 +650,6 @@
 </div>
 
 <script>
-  // 🔗 請填寫你部署後取得的 Web App URL
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrN32fp67oOdDQ5XUx5oZngCX4bEUOFKdl1xSv6j2gtzn-oJ51X_OzFBHdLp95rxj3/exec";
 
   let teachers = [];
@@ -732,7 +701,6 @@
     fetchCloudData();
   };
 
-  // 將 google.script.run 改為標準 fetch
   function fetchCloudData() {
     showLoading(true);
     fetch(`${GAS_WEB_APP_URL}?action=getAll`)
@@ -926,40 +894,33 @@
     });
   }
 
+  // 修改：樂觀更新刪除紀錄，點擊秒消失，背景默默刪除，不彈遮罩
   function confirmDeleteAppointment(id, event, infoStr) {
-  if (event) event.stopPropagation();
-  
-  if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
-    // 1. 先備份被刪除的資料（若伺服器刪除失敗時可還原）
-    const deletedItemIndex = rawAppointments.findIndex(item => item.id === id);
-    if (deletedItemIndex === -1) return;
-    const backupItem = rawAppointments[deletedItemIndex];
+    if (event) event.stopPropagation();
+    if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
+      
+      const deletedIndex = rawAppointments.findIndex(evt => evt.id === id);
+      if (deletedIndex === -1) return;
 
-    // 2. 【樂觀更新】立刻從前端陣列移除該筆資料，並秒速刷新畫面
-    rawAppointments.splice(deletedItemIndex, 1);
-    updateAllUI();
+      const backupEvent = rawAppointments[deletedIndex];
+      rawAppointments.splice(deletedIndex, 1);
+      renderCalendars();
 
-    // 3. 在背景非同步發送刪除請求（不顯示 Loading 遮罩）
-    fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'deleteAppointment',
-        id: id
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'deleteAppointment',
+          id: id
+        })
       })
-    })
-    .then(res => res.json())
-    .then(result => {
-      // 刪除成功，背景無聲處理即可
-      console.log('刪除成功:', id);
-    })
-    .catch(err => {
-      // 若後端刪除失敗，提示使用者並還原資料
-      alert(`刪除失敗，請檢查網路連線！\n錯誤訊息：${err.message}`);
-      rawAppointments.splice(deletedItemIndex, 0, backupItem);
-      updateAllUI();
-    });
+      .then(res => res.json())
+      .catch(err => {
+        alert("刪除失敗，已恢復資料！");
+        rawAppointments.splice(deletedIndex, 0, backupEvent);
+        renderCalendars();
+      });
+    }
   }
-}
 
   function updateAllUI() {
     renderManagementTags();
@@ -1014,10 +975,11 @@
     const months = getMonthRange();
     const colorMode = document.getElementById('colorModeSelect').value;
 
+    // 精簡節次名稱，節省儲存格空間
     const periodShortMap = {
-      "第一節": "1", "第二節": "2", "第三節": "3", "第四節": "4",
-      "午休": "午",
-      "第五節": "5", "第六節": "6", "第七節": "7", "第八節": "8"
+      "第一節": "1節", "第二節": "2節", "第三節": "3節", "第四節": "4節",
+      "午休": "午休",
+      "第五節": "5節", "第六節": "6節", "第七節": "7節", "第八節": "8節"
     };
 
     const isMobile = window.innerWidth <= 768;
@@ -1086,9 +1048,9 @@
           tag.style.color = colors.text;
 
           const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
+          const shortPeriod = periodShortMap[evt.period] || evt.period;
 
           if (isMobile) {
-            const shortPeriod = periodShortMap[evt.period] || evt.period;
             tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>`;
             
             tag.addEventListener('click', function(e) {
@@ -1098,7 +1060,8 @@
             });
 
           } else {
-            tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>
+            // 修改：電腦版同樣採用精簡節次（如：1節），完整顯示「1節 教師-學生」
+            tag.innerHTML = `<span class="event-text">${shortPeriod} ${evt.teacher}-${evt.student}</span>
                              <span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
           }
           
@@ -1134,51 +1097,54 @@
     document.getElementById('eventModal').style.display = 'none';
   }
 
+  // 修改：樂觀更新新增紀錄，儲存瞬間顯示，背景默默儲存，完全不跳遮罩
   function saveEvent() {
-  const teacher = document.getElementById('teacherSelect').value;
-  const period = document.getElementById('periodSelect').value;
-  const student = document.getElementById('studentSelect').value;
+    const teacher = document.getElementById('teacherSelect').value;
+    const period = document.getElementById('periodSelect').value;
+    const student = document.getElementById('studentSelect').value;
 
-  if (!teacher || !student) {
-    alert("請選擇教師與學生！");
-    return;
+    if (!teacher || !student) {
+      alert("請選擇教師與學生！");
+      return;
+    }
+
+    const tempId = "temp_" + Date.now();
+    const eventData = {
+      id: tempId,
+      date: selectedDateStr,
+      teacher: teacher,
+      period: period,
+      student: student
+    };
+
+    closeModal();
+
+    // 1. 立即推入本地陣列並刷頁，達成 0.1 秒極速顯示
+    rawAppointments.push(eventData);
+    renderCalendars();
+
+    // 2. 背景傳輸給 Google，不顯示全螢幕 Loading
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'addAppointment',
+        eventData: eventData
+      })
+    })
+    .then(res => res.json())
+    .then(result => {
+      // 若後端有產生正式 id，可予以更新
+      if (result && result.id) {
+        eventData.id = result.id;
+      }
+    })
+    .catch(err => {
+      alert("新增失敗，已移除該筆預約！");
+      rawAppointments = rawAppointments.filter(evt => evt.id !== tempId);
+      renderCalendars();
+    });
   }
 
-  // 1. 建立前端臨時資料物件（包含暫時 ID）
-  const tempId = "temp_" + Date.now();
-  const eventData = {
-    id: tempId,
-    date: selectedDateStr,
-    teacher: teacher,
-    period: period,
-    student: student
-  };
-
-  // 2. 【樂觀更新】立刻寫入前端陣列並刷新畫面
-  rawAppointments.push(eventData);
-  updateAllUI();
-  closeModal();
-
-  // 3. 背景非同步送出資料，不擋住使用者操作
-  fetch(GAS_WEB_APP_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'addAppointment',
-      eventData: eventData
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    // 成功後可用後端回傳的真實 ID 替換掉 tempId（或背景靜默重新載入）
-    fetchCloudData();
-  })
-  .catch(err => {
-    alert("儲存失敗，請檢查網路連線");
-    // 若失敗，將該筆資料從前端移除並恢復畫面
-    rawAppointments = rawAppointments.filter(item => item.id !== tempId);
-    updateAllUI();
-  });
-}
   function clearAllData() {
     if (confirm("⚠️ 警告：這將會【清除月曆上的所有晤談預約紀錄】！（教師與學生名單將會保留），確定要清空嗎？")) {
       showLoading(true);
