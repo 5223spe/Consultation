@@ -712,6 +712,22 @@
   let rawAppointments = []; 
   const periods = ["第一節", "第二節", "第三節", "第四節", "午休", "第五節", "第六節", "第七節", "第八節"];
 
+  // 轉換時段文字為簡短數字標記（適用於手機版）
+  function getShortPeriod(period) {
+    const map = {
+      "第一節": "1",
+      "第二節": "2",
+      "第三節": "3",
+      "第四節": "4",
+      "午休": "午休",
+      "第五節": "5",
+      "第六節": "6",
+      "第七節": "7",
+      "第八節": "8"
+    };
+    return map[period] || period;
+  }
+
   let selectedDateStr = "";
   let activeFilterType = 'teacher';
   let currentFilterValue = 'ALL';
@@ -1120,7 +1136,9 @@
           const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
 
           if (isMobile) {
-            tag.innerHTML = `<span class="event-text"><b>${evt.period}</b> ${evt.teacher}-${evt.student}</span>`;
+            // 手機版：節次轉數字，如 4 教師-學生
+            const shortPeriod = getShortPeriod(evt.period);
+            tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>`;
             
             tag.addEventListener('click', function(e) {
               e.preventDefault();
@@ -1129,7 +1147,7 @@
             });
 
           } else {
-            // 完整顯示「第一節 教師-學生」格式
+            // 電腦版：完整顯示「第四節 教師-學生」格式
             tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>
                              <span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
           }
