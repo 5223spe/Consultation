@@ -4,6 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>教師學生晤談預約月曆</title>
+
+  <!-- 1. 設定 iOS / iPadOS 桌面快捷圖示 (請替換為您的圖片檔名或網址) -->
+  <link rel="apple-touch-icon" href="1234.jpg">
+  
+  <!-- 2. 設定一般瀏覽器與 Android 桌面標籤圖示 -->
+  <link rel="icon" type="image/jpeg" href="1234.jpg">
+
+  <!-- 3. 移動端全螢幕 App 設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="晤談預約">
+
   <style>
     :root {
       --primary-color: #0f766e;
@@ -810,10 +822,9 @@
       });
   }
 
-  // 取得顏色：處理「家臻」與「怡君」互換底色需求
   function getColorForEntity(name, type) {
-    if (name === '家臻') return basePalette[1]; // 給予藍色調
-    if (name === '怡君') return basePalette[0]; // 給予紅色調
+    if (name === '家臻') return basePalette[1];
+    if (name === '怡君') return basePalette[0];
 
     const list = (type === 'teacher') ? teachers : students;
     const index = list.indexOf(name);
@@ -1227,7 +1238,6 @@
     });
   }
 
-  // 僅清除當前學期的晤談紀錄
   function clearCurrentSemesterData() {
     const correctPassword = "spe5223";
 
@@ -1247,7 +1257,6 @@
       
       const currentMonths = getMonthRange();
       
-      // 判斷預約紀錄是否屬於當前學期的月份與年份
       const isCurrentSemesterEvent = (evt) => {
         const evtDate = new Date(evt.date);
         const year = evtDate.getFullYear();
@@ -1263,10 +1272,8 @@
         return;
       }
 
-      // 保留非當前學期的紀錄
       rawAppointments = rawAppointments.filter(evt => !isCurrentSemesterEvent(evt));
 
-      // 逐筆向 GAS 後端發送刪除指令，刪除當前學期的紀錄
       const deletePromises = targetEvents.map(evt => {
         return fetch(GAS_WEB_APP_URL, {
           method: 'POST',
