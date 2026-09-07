@@ -286,7 +286,6 @@
       margin-bottom: 3px;
     }
 
-    /* 調整標籤文字大小，確保完全放得下完整文字 */
     .event-tag {
       font-size: 0.7rem;
       font-weight: 600;
@@ -673,7 +672,7 @@
     <div class="action-btn-group">
        <button class="action-btn btn-semester" onclick="loadSemesterCalendar(1)">📅 載入上學期月曆</button>
        <button class="action-btn btn-semester" onclick="loadSemesterCalendar(2)">📅 載入下學期月曆</button>
-       <button class="action-btn btn-danger" onclick="clearAllData()">🗑️ 清除所有晤談紀錄</button>
+       <button class="action-btn btn-danger" onclick="clearCurrentSemesterData()">🗑️ 清除當前學期晤談紀錄</button>
     </div>
   </div>
 </div>
@@ -712,7 +711,6 @@
   let rawAppointments = []; 
   const periods = ["第一節", "第二節", "第三節", "第四節", "午休", "第五節", "第六節", "第七節", "第八節"];
 
-  // 轉換時段文字為簡短數字標記（適用於手機版）
   function getShortPeriod(period) {
     const map = {
       "第一節": "1",
@@ -734,8 +732,8 @@
   let currentSemester = 0;
 
   const basePalette = [
-    { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
-    { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' },
+    { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' }, // 紅色調
+    { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' }, // 藍色調
     { bg: '#dcfce7', border: '#86efac', text: '#166534' },
     { bg: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8' },
     { bg: '#fef3c7', border: '#fde047', text: '#854d0e' },
@@ -746,7 +744,6 @@
     { bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46' }
   ];
 
-  // 電腦版側欄切換展開/收合
   function toggleDesktopSidebar(side) {
     if (side === 'left') {
       const sb = document.getElementById('sidebarLeft');
@@ -813,7 +810,11 @@
       });
   }
 
+  // 取得顏色：處理「家臻」與「怡君」互換底色需求
   function getColorForEntity(name, type) {
+    if (name === '家臻') return basePalette[1]; // 給予藍色調
+    if (name === '怡君') return basePalette[0]; // 給予紅色調
+
     const list = (type === 'teacher') ? teachers : students;
     const index = list.indexOf(name);
     
@@ -1136,7 +1137,6 @@
           const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
 
           if (isMobile) {
-            // 手機版：節次轉數字，如 4 教師-學生
             const shortPeriod = getShortPeriod(evt.period);
             tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>`;
             
@@ -1147,7 +1147,6 @@
             });
 
           } else {
-            // 電腦版：完整顯示「第四節 教師-學生」格式
             tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>
                              <span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
           }
@@ -1228,37 +1227,67 @@
     });
   }
 
-  function clearAllData() {
-    // 設定你想使用的密碼
+  // 僅清除當前學期的晤談紀錄
+  function clearCurrentSemesterData() {
     const correctPassword = "spe5223";
 
-    // 彈出輸入密碼畫面
-    const userPassword = prompt("🔐 敏感操作：請輸入密碼以清除所有紀錄：");
+    const userPassword = prompt("🔐 敏感操作：請輸入密碼以清除當前學期紀錄：");
 
-    // 若使用者點擊取消或未輸入
     if (userPassword === null) return;
 
-    // 驗證密碼
     if (userPassword !== correctPassword) {
       alert("❌ 密碼錯誤！無法執行刪除操作。");
       return;
     }
 
-    // 密碼正確後，再進行二次確認
-    if (confirm("⚠️ 警告：這將會【清除月曆上的所有晤談預約紀錄】！（教師與學生名單將會保留），確定要清空嗎？")) {
+    const semesterText = currentSemester === 1 ? "上學期" : "下學期";
+
+    if (confirm(`⚠️ 警告：這將會【清除月曆上「${semesterText}」的所有晤談預約紀錄】！（另一學期的紀錄將會保留），確定要清空嗎？`)) {
       showLoading(true);
       
-      rawAppointments = []; 
+      const currentMonths = getMonthRange();
+      
+      // 判斷預約紀錄是否屬於當前學期的月份與年份
+      const isCurrentSemesterEvent = (evt) => {
+        const evtDate = new Date(evt.date);
+        const year = evtDate.getFullYear();
+        const month = evtDate.getMonth();
+        return currentMonths.some(m => m.year === year && m.month === month);
+      };
 
-      fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'clearAppointments' })
-      })
-      .then(res => res.json())
-      .then(() => {
+      const targetEvents = rawAppointments.filter(isCurrentSemesterEvent);
+
+      if (targetEvents.length === 0) {
         showLoading(false);
-        updateAllUI();
+        alert(`當前（${semesterText}）沒有任何晤談紀錄可供刪除。`);
+        return;
+      }
+
+      // 保留非當前學期的紀錄
+      rawAppointments = rawAppointments.filter(evt => !isCurrentSemesterEvent(evt));
+
+      // 逐筆向 GAS 後端發送刪除指令，刪除當前學期的紀錄
+      const deletePromises = targetEvents.map(evt => {
+        return fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'deleteAppointment',
+            id: evt.id
+          })
+        });
       });
+
+      Promise.all(deletePromises)
+        .then(() => {
+          showLoading(false);
+          updateAllUI();
+          alert(`已成功清除【${semesterText}】的晤談紀錄！`);
+        })
+        .catch(err => {
+          showLoading(false);
+          alert("部分刪除操作失敗，請重新整理頁面檢查！");
+          console.error(err);
+        });
     }
   }
 </script>
