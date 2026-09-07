@@ -38,13 +38,13 @@
     }
 
     .app-layout {
-      display: flex;
-      gap: 15px;
-      max-width: 1600px;
-      margin: 0 auto;
-      align-items: flex-start;
-      position: relative;
-    }
+  display: flex;
+  gap: 15px;
+  max-width: 98%; /* 將原本 1600px 改為 98% 或 100%，善用螢幕寬度 */
+  margin: 0 auto;
+  align-items: flex-start;
+  position: relative;
+}
 
     .sidebar-left {
       width: 220px;
@@ -1118,38 +1118,50 @@
   }
 
   function saveEvent() {
-    const teacher = document.getElementById('teacherSelect').value;
-    const period = document.getElementById('periodSelect').value;
-    const student = document.getElementById('studentSelect').value;
+  const teacher = document.getElementById('teacherSelect').value;
+  const period = document.getElementById('periodSelect').value;
+  const student = document.getElementById('studentSelect').value;
 
-    if (!teacher || !student) {
-      alert("請選擇教師與學生！");
-      return;
-    }
-
-    const eventData = {
-      date: selectedDateStr,
-      teacher: teacher,
-      period: period,
-      student: student
-    };
-
-    closeModal();
-    showLoading(true);
-
-    fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'addAppointment',
-        eventData: eventData
-      })
-    })
-    .then(res => res.json())
-    .then(() => {
-      fetchCloudData();
-    });
+  if (!teacher || !student) {
+    alert("請選擇教師與學生！");
+    return;
   }
 
+  // 1. 建立前端臨時資料物件（包含暫時 ID）
+  const tempId = "temp_" + Date.now();
+  const eventData = {
+    id: tempId,
+    date: selectedDateStr,
+    teacher: teacher,
+    period: period,
+    student: student
+  };
+
+  // 2. 【樂觀更新】立刻寫入前端陣列並刷新畫面
+  rawAppointments.push(eventData);
+  updateAllUI();
+  closeModal();
+
+  // 3. 背景非同步送出資料，不擋住使用者操作
+  fetch(GAS_WEB_APP_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'addAppointment',
+      eventData: eventData
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    // 成功後可用後端回傳的真實 ID 替換掉 tempId（或背景靜默重新載入）
+    fetchCloudData();
+  })
+  .catch(err => {
+    alert("儲存失敗，請檢查網路連線");
+    // 若失敗，將該筆資料從前端移除並恢復畫面
+    rawAppointments = rawAppointments.filter(item => item.id !== tempId);
+    updateAllUI();
+  });
+}
   function clearAllData() {
     if (confirm("⚠️ 警告：這將會【清除月曆上的所有晤談預約紀錄】！（教師與學生名單將會保留），確定要清空嗎？")) {
       showLoading(true);
