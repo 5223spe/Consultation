@@ -17,7 +17,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 15px;
       padding-bottom: 40px;
       background-color: #f1f5f9;
       color: #1e293b;
@@ -25,9 +25,12 @@
 
     .header-container {
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
+      max-width: 98%;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     h1 {
@@ -35,28 +38,81 @@
       color: #0f172a;
       margin: 0;
       font-size: 1.8rem;
+      flex: 1;
     }
 
-    /* 調整最大寬度為 98%，讓電腦版月曆有更多空間 */
+    /* 邊欄控制按鈕 */
+    .toggle-sidebar-btn {
+      background: #0f766e;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: background 0.2s;
+    }
+
+    .toggle-sidebar-btn:hover {
+      background: #0d655e;
+    }
+
+    /* 版面調大至 98%，釋放更多空間給月曆 */
     .app-layout {
       display: flex;
-      gap: 15px;
+      gap: 12px;
       max-width: 98%;
       margin: 0 auto;
       align-items: flex-start;
       position: relative;
     }
 
+    /* 左右側欄收合樣式 */
     .sidebar-left {
-      width: 200px;
+      width: 190px;
       flex-shrink: 0;
       background: #fff;
       border: 1px solid var(--border-color);
       border-radius: 8px;
-      padding: 15px;
+      padding: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      z-index: 1000;
-      transition: transform 0.3s ease;
+      z-index: 100;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .sidebar-left.collapsed {
+      width: 0;
+      padding: 0;
+      margin: 0;
+      border: none;
+      opacity: 0;
+    }
+
+    .sidebar-right {
+      width: 220px;
+      flex-shrink: 0;
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      z-index: 100;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .sidebar-right.collapsed {
+      width: 0;
+      padding: 0;
+      margin: 0;
+      border: none;
+      opacity: 0;
     }
 
     .sidebar-header-mobile {
@@ -79,8 +135,8 @@
 
     .filter-section-title {
       font-weight: bold;
-      font-size: 0.9rem;
-      margin-bottom: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
       color: #334155;
     }
 
@@ -89,13 +145,13 @@
       background: #e2e8f0;
       border-radius: 6px;
       padding: 2px;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
 
     .toggle-btn {
       flex: 1;
-      padding: 6px;
-      font-size: 0.85rem;
+      padding: 5px;
+      font-size: 0.8rem;
       text-align: center;
       border-radius: 4px;
       cursor: pointer;
@@ -112,24 +168,24 @@
 
     .select-input {
       width: 100%;
-      padding: 6px;
+      padding: 5px;
       border-radius: 4px;
       border: 1px solid #cbd5e1;
-      font-size: 0.85rem;
-      margin-bottom: 15px;
+      font-size: 0.82rem;
+      margin-bottom: 12px;
     }
 
     .filter-tag-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
     .filter-btn {
       width: 100%;
-      padding: 8px 12px;
-      border-radius: 16px;
-      font-size: 0.85rem;
+      padding: 6px 10px;
+      border-radius: 14px;
+      font-size: 0.8rem;
       font-weight: bold;
       border: 1px solid transparent;
       cursor: pointer;
@@ -144,11 +200,11 @@
 
     .btn-sync-gcal {
       width: 100%;
-      margin-top: 15px;
-      padding: 10px;
+      margin-top: 12px;
+      padding: 8px;
       background-color: #4285F4;
       color: white;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: bold;
       border: none;
       border-radius: 6px;
@@ -167,47 +223,47 @@
       background: #fff;
       border: 1px solid var(--border-color);
       border-radius: 8px;
-      padding: 15px;
+      padding: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
 
     .calendar-vertical-list {
       display: flex;
       flex-direction: column;
-      gap: 30px;
+      gap: 25px;
     }
 
     .month-card { background: #fff; }
 
     .month-title {
       text-align: center;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       font-weight: bold;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       color: #0f766e;
     }
 
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
+      gap: 4px;
     }
 
     .weekday-header {
       text-align: center;
       font-weight: bold;
-      padding: 8px 0;
+      padding: 6px 0;
       background: #f1f5f9;
       border-radius: 4px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: #475569;
     }
 
     .day-cell {
-      min-height: 100px;
+      min-height: 105px;
       border: 1px solid var(--border-color);
       border-radius: 4px;
-      padding: 4px;
+      padding: 3px;
       background: #fff;
       cursor: pointer;
       transition: background 0.2s;
@@ -226,12 +282,13 @@
 
     .day-number {
       font-weight: bold;
-      font-size: 0.85rem;
-      margin-bottom: 4px;
+      font-size: 0.8rem;
+      margin-bottom: 3px;
     }
 
+    /* 調整標籤文字大小，確保完全放得下完整文字 */
     .event-tag {
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 600;
       padding: 2px 4px;
       border-radius: 4px;
@@ -258,74 +315,62 @@
       flex-shrink: 0;
     }
 
-    .sidebar-right {
-      width: 240px;
-      flex-shrink: 0;
-      background: #fff;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 15px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      z-index: 1000;
-      transition: transform 0.3s ease;
-    }
-
     .manage-card {
       background: #f8fafc;
-      padding: 12px;
+      padding: 10px;
       border-radius: 6px;
       border: 1px solid #e2e8f0;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
 
     .manage-card h3 {
       margin-top: 0;
-      margin-bottom: 10px;
-      font-size: 0.95rem;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
       color: #0f766e;
     }
 
     .input-group {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       align-items: center;
       width: 100%;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .input-group input {
       flex: 1;
       min-width: 0;
-      padding: 6px 8px;
+      padding: 5px 6px;
       border: 1px solid #cbd5e1;
       border-radius: 4px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
 
     .input-group button {
       flex-shrink: 0;
       width: auto;
-      padding: 6px 10px;
-      font-size: 0.85rem;
+      padding: 5px 8px;
+      font-size: 0.8rem;
       white-space: nowrap;
     }
 
     .tag-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      max-height: 180px;
+      gap: 4px;
+      max-height: 150px;
       overflow-y: auto;
     }
 
     .manage-tag {
-      padding: 4px 10px;
-      border-radius: 16px;
-      font-size: 0.8rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       border: 1px solid transparent;
     }
 
@@ -338,9 +383,9 @@
     .action-btn-group {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-top: 20px;
-      padding-top: 15px;
+      gap: 8px;
+      margin-top: 15px;
+      padding-top: 12px;
       border-top: 1px solid #e2e8f0;
     }
 
@@ -348,8 +393,8 @@
       color: white;
       border: none;
       border-radius: 6px;
-      padding: 10px;
-      font-size: 0.88rem;
+      padding: 8px;
+      font-size: 0.82rem;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.2s;
@@ -488,15 +533,19 @@
     @media (max-width: 768px) {
       body { padding: 2px; }
 
+      .toggle-sidebar-btn { display: none; }
+
       .mobile-nav-bar { display: flex; }
 
       .sidebar-left, .sidebar-right {
         position: fixed;
         top: 0; bottom: 0;
         height: 100vh;
+        width: 260px !important;
         overflow-y: auto;
         box-shadow: 0 0 15px rgba(0,0,0,0.2);
         border-radius: 0;
+        opacity: 1 !important;
       }
 
       .sidebar-left { left: 0; transform: translateX(-100%); }
@@ -553,7 +602,13 @@
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebars()"></div>
 
 <div class="header-container">
+  <button class="toggle-sidebar-btn" id="btnToggleLeft" onclick="toggleDesktopSidebar('left')">
+    ◀ 收合篩選
+  </button>
   <h1>教師學生晤談預約月曆</h1>
+  <button class="toggle-sidebar-btn" id="btnToggleRight" onclick="toggleDesktopSidebar('right')">
+    收合管理 ▶
+  </button>
 </div>
 
 <div class="mobile-nav-bar">
@@ -595,7 +650,7 @@
       <button class="close-sidebar-btn" onclick="closeSidebars()">&times;</button>
     </div>
 
-    <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 15px; color: #1e293b;">名單管理</div>
+    <div style="font-weight: bold; font-size: 1rem; margin-bottom: 12px; color: #1e293b;">名單管理</div>
     
     <div class="manage-card">
       <h3>教師名單管理</h3>
@@ -616,8 +671,8 @@
     </div>
 
     <div class="action-btn-group">
-       <button class="action-btn btn-semester" onclick="loadSemesterCalendar(1)">📅 載入上學期月曆 (9月~1月)</button>
-       <button class="action-btn btn-semester" onclick="loadSemesterCalendar(2)">📅 載入下學期月曆 (2月-6月)</button>
+       <button class="action-btn btn-semester" onclick="loadSemesterCalendar(1)">📅 載入上學期月曆</button>
+       <button class="action-btn btn-semester" onclick="loadSemesterCalendar(2)">📅 載入下學期月曆</button>
        <button class="action-btn btn-danger" onclick="clearAllData()">🗑️ 清除所有晤談紀錄</button>
     </div>
   </div>
@@ -674,6 +729,29 @@
     { bg: '#e2e8f0', border: '#cbd5e1', text: '#334155' },
     { bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46' }
   ];
+
+  // 電腦版側欄切換展開/收合
+  function toggleDesktopSidebar(side) {
+    if (side === 'left') {
+      const sb = document.getElementById('sidebarLeft');
+      const btn = document.getElementById('btnToggleLeft');
+      sb.classList.toggle('collapsed');
+      if (sb.classList.contains('collapsed')) {
+        btn.innerText = '▶ 展開篩選';
+      } else {
+        btn.innerText = '◀ 收合篩選';
+      }
+    } else if (side === 'right') {
+      const sb = document.getElementById('sidebarRight');
+      const btn = document.getElementById('btnToggleRight');
+      sb.classList.toggle('collapsed');
+      if (sb.classList.contains('collapsed')) {
+        btn.innerText = '展開管理 ◀';
+      } else {
+        btn.innerText = '收合管理 ▶';
+      }
+    }
+  }
 
   function openSidebar(side) {
     closeSidebars();
@@ -894,7 +972,6 @@
     });
   }
 
-  // 修改：樂觀更新刪除紀錄，點擊秒消失，背景默默刪除，不彈遮罩
   function confirmDeleteAppointment(id, event, infoStr) {
     if (event) event.stopPropagation();
     if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
@@ -975,13 +1052,6 @@
     const months = getMonthRange();
     const colorMode = document.getElementById('colorModeSelect').value;
 
-    // 精簡節次名稱，節省儲存格空間
-    const periodShortMap = {
-      "第一節": "1", "第二節": "2", "第三節": "3", "第四節": "4",
-      "午休": "午",
-      "第五節": "5", "第六節": "6", "第七節": "7", "第八節": "8"
-    };
-
     const isMobile = window.innerWidth <= 768;
 
     months.forEach(({ year, month }) => {
@@ -1048,10 +1118,9 @@
           tag.style.color = colors.text;
 
           const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
-          const shortPeriod = periodShortMap[evt.period] || evt.period;
 
           if (isMobile) {
-            tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>`;
+            tag.innerHTML = `<span class="event-text"><b>${evt.period}</b> ${evt.teacher}-${evt.student}</span>`;
             
             tag.addEventListener('click', function(e) {
               e.preventDefault();
@@ -1060,8 +1129,8 @@
             });
 
           } else {
-            // 修改：電腦版同樣採用精簡節次（如：1節），完整顯示「1節 教師-學生」
-            tag.innerHTML = `<span class="event-text">${shortPeriod} ${evt.teacher}-${evt.student}</span>
+            // 完整顯示「第一節 教師-學生」格式
+            tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>
                              <span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
           }
           
@@ -1097,7 +1166,6 @@
     document.getElementById('eventModal').style.display = 'none';
   }
 
-  // 修改：樂觀更新新增紀錄，儲存瞬間顯示，背景默默儲存，完全不跳遮罩
   function saveEvent() {
     const teacher = document.getElementById('teacherSelect').value;
     const period = document.getElementById('periodSelect').value;
@@ -1119,11 +1187,9 @@
 
     closeModal();
 
-    // 1. 立即推入本地陣列並刷頁，達成 0.1 秒極速顯示
     rawAppointments.push(eventData);
     renderCalendars();
 
-    // 2. 背景傳輸給 Google，不顯示全螢幕 Loading
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
       body: JSON.stringify({
@@ -1133,7 +1199,6 @@
     })
     .then(res => res.json())
     .then(result => {
-      // 若後端有產生正式 id，可予以更新
       if (result && result.id) {
         eventData.id = result.id;
       }
