@@ -78,7 +78,6 @@
       background: #0d655e;
     }
 
-    /* 版面調大至 98%，釋放更多空間給月曆 */
     .app-layout {
       display: flex;
       gap: 12px;
@@ -180,6 +179,27 @@
     .toggle-btn.active {
       background: #0f766e;
       color: white;
+    }
+
+    /* 多選模式開關按鈕 */
+    .multi-mode-btn {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 10px;
+      background-color: #f1f5f9;
+      color: #334155;
+      border: 1px dashed #94a3b8;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .multi-mode-btn.active {
+      background-color: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #0284c7;
     }
 
     .select-input {
@@ -653,6 +673,11 @@
       <button class="toggle-btn" id="btnShowStudent" onclick="setFilterType('student')">學生</button>
     </div>
 
+    <!-- 切換多選按鈕 -->
+    <button class="multi-mode-btn" id="btnToggleMultiMode" onclick="toggleMultiSelectMode()">
+      ☐ 開啟多選模式
+    </button>
+
     <div class="filter-section-title">標籤著色依據：</div>
     <select id="colorModeSelect" class="select-input" onchange="renderCalendars()">
       <option value="teacher">教師顏色</option>
@@ -753,12 +778,13 @@
 
   let selectedDateStr = "";
   let activeFilterType = 'teacher';
-  let selectedFilterValues = []; // 空陣列表示選擇「全部」
+  let isMultiSelect = false;      // 預設為單選模式
+  let selectedFilterValues = []; // 空陣列表示「顯示全部」
   let currentSemester = 0;
 
   const basePalette = [
-    { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' }, // 紅色調
-    { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' }, // 藍色調
+    { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
+    { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' },
     { bg: '#dcfce7', border: '#89c493', text: '#166534' },
     { bg: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8' },
     { bg: '#fef3c7', border: '#fde047', text: '#854d0e' },
@@ -853,22 +879,51 @@
 
   function setFilterType(type) {
     activeFilterType = type;
-    selectedFilterValues = []; // 重置篩選選取項目
+    selectedFilterValues = []; // 切換類別時重置
     document.getElementById('btnShowTeacher').className = `toggle-btn ${type === 'teacher' ? 'active' : ''}`;
     document.getElementById('btnShowStudent').className = `toggle-btn ${type === 'student' ? 'active' : ''}`;
     renderFilterButtons();
     renderCalendars();
   }
 
+  // 切換「單選/多選模式」
+  function toggleMultiSelectMode() {
+    isMultiSelect = !isMultiSelect;
+    selectedFilterValues = []; // 切換模式時清空選擇
+    
+    const btn = document.getElementById('btnToggleMultiMode');
+    if (isMultiSelect) {
+      btn.innerText = '☑ 多選模式中 (點擊切回單選)';
+      btn.classList.add('active');
+    } else {
+      btn.innerText = '☐ 開啟多選模式';
+      btn.classList.remove('active');
+    }
+
+    renderFilterButtons();
+    renderCalendars();
+  }
+
+  // 根據多選/單選切換邏輯
   function toggleFilterValue(val) {
     if (val === 'ALL') {
       selectedFilterValues = [];
     } else {
-      const index = selectedFilterValues.indexOf(val);
-      if (index > -1) {
-        selectedFilterValues.splice(index, 1);
+      if (isMultiSelect) {
+        // 多選模式：增加/刪除
+        const index = selectedFilterValues.indexOf(val);
+        if (index > -1) {
+          selectedFilterValues.splice(index, 1);
+        } else {
+          selectedFilterValues.push(val);
+        }
       } else {
-        selectedFilterValues.push(val);
+        // 單選模式：若已選中則取消（設為全部），否則取代
+        if (selectedFilterValues.length === 1 && selectedFilterValues[0] === val) {
+          selectedFilterValues = [];
+        } else {
+          selectedFilterValues = [val];
+        }
       }
     }
     renderFilterButtons();
@@ -887,13 +942,22 @@
     list.forEach(item => {
       const colors = getColorForEntity(item, activeFilterType);
       const isSelected = selectedFilterValues.includes(item);
-      html += `<button class="filter-btn" onclick="toggleFilterValue('${item}')" style="background:${colors.bg}; border-color:${colors.border}; color:${colors.text}; ${isSelected ? `box-shadow: 0 0 0 3px ${colors.border}; border-color: ${colors.border}; filter: brightness(0.95);` : 'opacity: 0.5;'}">
+      
+      let styleStr = `background:${colors.bg}; border-color:${colors.border}; color:${colors.text};`;
+      if (isSelected) {
+        styleStr += `box-shadow: 0 0 0 3px ${colors.border}; filter: brightness(0.95);`;
+      } else if (!isAllSelected) {
+        styleStr += `opacity: 0.5;`; // 非全選且未被選中時設為半透明
+      }
+
+      html += `<button class="filter-btn" onclick="toggleFilterValue('${item}')" style="${styleStr}">
                 ${item} ${isSelected ? '✓' : ''}
               </button>`;
     });
 
     container.innerHTML = html;
 
+    // Google 日曆同步按鈕（僅在「單選一位老師」時顯示）
     if (activeFilterType === 'teacher' && selectedFilterValues.length === 1) {
       const teacherName = selectedFilterValues[0];
       syncContainer.innerHTML = `
@@ -1145,7 +1209,7 @@
         dayEvents.sort((a, b) => periods.indexOf(a.period) - periods.indexOf(b.period));
 
         dayEvents.forEach(evt => {
-          // 多選條件篩選
+          // 篩選過濾（適用單選與多選狀態）
           if (selectedFilterValues.length > 0) {
             if (activeFilterType === 'teacher' && !selectedFilterValues.includes(evt.teacher)) return;
             if (activeFilterType === 'student' && !selectedFilterValues.includes(evt.student)) return;
