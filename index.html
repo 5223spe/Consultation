@@ -1217,6 +1217,32 @@
       return;
     }
 
+    // --- 檢查時間衝突 ---
+    // 1. 檢查該老師在同一天、同一時段是否已有晤談
+    const teacherConflict = rawAppointments.find(evt => 
+      evt.date === selectedDateStr && 
+      evt.period === period && 
+      evt.teacher === teacher
+    );
+
+    if (teacherConflict) {
+      alert(`⚠️ 登記失敗！\n\n「${teacher}」老師在 ${selectedDateStr} ${period} 已有與「${teacherConflict.student}」學生的晤談預約。`);
+      return;
+    }
+
+    // 2. 檢查該學生在同一天、同一時段是否已有晤談
+    const studentConflict = rawAppointments.find(evt => 
+      evt.date === selectedDateStr && 
+      evt.period === period && 
+      evt.student === student
+    );
+
+    if (studentConflict) {
+      alert(`⚠️ 登記失敗！\n\n「${student}」學生在 ${selectedDateStr} ${period} 已有與「${studentConflict.teacher}」老師的晤談預約。`);
+      return;
+    }
+    // --------------------
+
     const tempId = "temp_" + Date.now();
     const eventData = {
       id: tempId,
