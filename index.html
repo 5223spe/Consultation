@@ -750,7 +750,7 @@
   const basePalette = [
     { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' }, // 紅色調
     { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' }, // 藍色調
-    { bg: '#dcfce7', border: '#86efac', text: '#166534' },
+    { bg: '#dcfce7', border: '#89c493', text: '#166534' },
     { bg: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8' },
     { bg: '#fef3c7', border: '#fde047', text: '#854d0e' },
     { bg: '#fce7f3', border: '#f472b6', text: '#9d174d' },
@@ -871,12 +871,13 @@
     const list = activeFilterType === 'teacher' ? teachers : students;
     const label = activeFilterType === 'teacher' ? '全部教師' : '全部學生';
 
-    let html = `<button class="filter-btn all" onclick="setFilterValue('ALL')" style="${currentFilterValue === 'ALL' ? 'outline:2px solid #0f766e;' : ''}">${label}</button>`;
+    const isAllSelected = currentFilterValue === 'ALL';
+    let html = `<button class="filter-btn all" onclick="setFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 3px #89c493;' : ''}">${label}</button>`;
 
     list.forEach(item => {
       const colors = getColorForEntity(item, activeFilterType);
       const isSelected = currentFilterValue === item;
-      html += `<button class="filter-btn" onclick="setFilterValue('${item}')" style="background:${colors.bg}; border-color:${colors.border}; color:${colors.text}; ${isSelected ? 'box-shadow: 0 0 0 2px #0f766e;' : ''}">
+      html += `<button class="filter-btn" onclick="setFilterValue('${item}')" style="background:${colors.bg}; border-color:${colors.border}; color:${colors.text}; ${isSelected ? `box-shadow: 0 0 0 3px ${colors.border}; border-color: ${colors.border};` : ''}">
                 ${item}
               </button>`;
     });
