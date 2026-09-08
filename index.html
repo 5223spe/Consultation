@@ -1073,7 +1073,7 @@
 
     const isAllSelected = selectedFilterValues.length === 0;
 
-    // 1. 處理相關教師區塊 (固定在學生列表上方)
+    // 1. 處理相關教師區塊 (完全展開，不限制高度也不產生滾動條)
     let relatedBox = document.getElementById('relatedTeachersBox');
     if (!relatedBox) {
       relatedBox = document.createElement('div');
@@ -1091,7 +1091,8 @@
 
       if (showRelatedTeachers) {
         relHtml += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
-        relHtml += `<div class="related-teachers-scroll" style="max-height: 80px;">`; // 限制相關老師最高 80px
+        // 移除 max-height 與 overflow，讓教師清單自然長大
+        relHtml += `<div class="related-teachers-scroll" style="max-height: none; overflow: visible;">`;
         teachers.forEach(t => {
           const isChecked = selectedRelatedTeachers.includes(t);
           relHtml += `
@@ -1112,7 +1113,7 @@
       relatedBox.style.display = 'none';
     }
 
-   // 2. 學生/教師清單選單 (只有這裡會滾動)
+    // 2. 學生/教師清單選單 (剩餘空間由底下的學生列表吸收，保持獨立滾動)
     let html = `<button class="filter-btn all" onclick="toggleFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 2px #89c493;' : ''}">${label}</button>`;
 
     list.forEach(item => {
@@ -1121,7 +1122,6 @@
       
       let styleStr = `background:${colors.bg}; border-color:${colors.border}; color:${colors.text};`;
       if (isSelected) {
-        // 修改亮暗與光暈邊框，改用 2px 避免太厚擠壓，並加上黑體粗字
         styleStr += `box-shadow: 0 0 0 2px ${colors.border}; font-weight: bold; filter: brightness(0.95);`;
       } else if (!isAllSelected) {
         styleStr += `opacity: 0.5;`;
