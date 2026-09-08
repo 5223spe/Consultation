@@ -57,7 +57,6 @@
       flex: 1;
     }
 
-    /* 邊欄控制按鈕 */
     .toggle-sidebar-btn {
       background: #0f766e;
       color: white;
@@ -74,9 +73,7 @@
       transition: background 0.2s;
     }
 
-    .toggle-sidebar-btn:hover {
-      background: #0d655e;
-    }
+    .toggle-sidebar-btn:hover { background: #0d655e; }
 
     .app-layout {
       display: flex;
@@ -87,7 +84,6 @@
       position: relative;
     }
 
-    /* 左右側欄收合樣式 */
     .sidebar-left {
       width: 190px;
       flex-shrink: 0;
@@ -100,11 +96,10 @@
       transition: all 0.3s ease;
       position: sticky;
       top: 15px;
-      /* 關鍵修改：嚴格卡死最大高度，確保絕不超出視窗底部 */
       max-height: calc(100vh - 80px); 
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* 防止內部元件溢出 */
+      overflow: hidden;
     }
 
     .sidebar-left.collapsed {
@@ -126,7 +121,7 @@
       z-index: 100;
       transition: all 0.3s ease;
       overflow: hidden;
-      position: sticky; /* 左右側欄固定 */
+      position: sticky;
       top: 15px;
     }
 
@@ -189,7 +184,6 @@
       color: white;
     }
 
-    /* 多選模式開關按鈕 */
     .multi-mode-btn {
       width: 100%;
       padding: 6px;
@@ -226,7 +220,6 @@
       flex: 1 1 auto;
       min-height: 0;
       overflow-y: auto;
-      /* 關鍵修改：上下左右預留 4px padding，避免選取時的光暈/邊框被裁切 */
       padding: 4px; 
       margin-bottom: 4px;
       box-sizing: border-box;
@@ -234,7 +227,7 @@
 
     .filter-btn {
       width: 100%;
-      box-sizing: border-box; /* 確保內外邊距包含在按鈕寬度內 */
+      box-sizing: border-box;
       transition: all 0.2s ease;
     }
 
@@ -259,9 +252,7 @@
       transition: background-color 0.2s;
     }
 
-    .btn-sync-gcal:hover {
-      background-color: #2b6cb0;
-    }
+    .btn-sync-gcal:hover { background-color: #2b6cb0; }
 
     .main-calendar {
       flex: 1;
@@ -453,18 +444,14 @@
       box-shadow: 0 2px 5px rgba(24, 128, 133, 0.3);
     }
 
-    .btn-semester:hover {
-      background-color: #116165;
-    }
+    .btn-semester:hover { background-color: #116165; }
 
     .btn-danger {
       background-color: #E65942;
       box-shadow: 0 2px 5px rgba(230, 89, 66, 0.25);
     }
 
-    .btn-danger:hover {
-      background-color: #C9422C;
-    }
+    .btn-danger:hover { background-color: #C9422C; }
 
     .modal {
       display: none;
@@ -528,9 +515,7 @@
       transition: background-color 0.2s;
     }
 
-    .btn-primary:hover {
-      background-color: #0d655e;
-    }
+    .btn-primary:hover { background-color: #0d655e; }
     .btn-secondary { background: #cbd5e1; color: #334155; }
 
     #loadingOverlay {
@@ -579,15 +564,11 @@
       z-index: 999;
     }
 
-    .sidebar-overlay.active {
-      display: block;
-    }
+    .sidebar-overlay.active { display: block; }
 
     @media (max-width: 768px) {
       body { padding: 2px; }
-
       .toggle-sidebar-btn { display: none; }
-
       .mobile-nav-bar { display: flex; }
 
       .sidebar-left, .sidebar-right {
@@ -605,9 +586,7 @@
       .sidebar-right { right: 0; transform: translateX(100%); }
 
       .sidebar-left.open, .sidebar-right.open { transform: translateX(0); }
-
       .sidebar-header-mobile { display: flex; }
-
       .main-calendar { padding: 2px; }
 
       .calendar-grid {
@@ -621,9 +600,7 @@
       }
 
       .weekday-header { font-size: 0.75rem; padding: 4px 0; }
-
       .day-cell { min-height: 70px; padding: 2px; }
-
       .day-number { font-size: 0.7rem; margin-bottom: 2px; }
 
       .event-tag {
@@ -644,11 +621,9 @@
       }
 
       .event-tag .delete-btn { display: none !important; }
-
       .manage-card { min-width: 100%; }
     }
 
-    /* 相關老師選單區域樣式 */
     .related-teachers-box {
       background: #f8fafc;
       border: 1px dashed #cbd5e1;
@@ -668,15 +643,12 @@
       user-select: none;
     }
 
-    .related-teacher-item input {
-      cursor: pointer;
-    }
+    .related-teacher-item input { cursor: pointer; }
     .related-teachers-scroll {
-  max-height: 120px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-    
+      max-height: none;
+      overflow: visible;
+      padding-right: 4px;
+    }
   </style>
 </head>
 <body>
@@ -712,7 +684,6 @@
       <button class="toggle-btn" id="btnShowStudent" onclick="setFilterType('student')">學生</button>
     </div>
 
-    <!-- 切換多選按鈕 -->
     <button class="multi-mode-btn" id="btnToggleMultiMode" onclick="toggleMultiSelectMode()">
       ☐ 開啟多選模式
     </button>
@@ -793,6 +764,7 @@
 </div>
 
 <script>
+  // ⚠️ 請在此處更換為正確的 Google Apps Script Web App URL
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrN32fp67oOdDQ5XUx5oZngCX4bEUOFKdl1xSv6j2gtzn-oJ51X_OzFBHdLp95rxj3/exec";
 
   let teachers = [];
@@ -802,27 +774,20 @@
 
   function getShortPeriod(period) {
     const map = {
-      "第一節": "1",
-      "第二節": "2",
-      "第三節": "3",
-      "第四節": "4",
-      "午休": "午",
-      "第五節": "5",
-      "第六節": "6",
-      "第七節": "7",
-      "第八節": "8"
+      "第一節": "1", "第二節": "2", "第三節": "3", "第四節": "4",
+      "午休": "午", "第五節": "5", "第六節": "6", "第七節": "7", "第八節": "8"
     };
     return map[period] || period;
   }
 
   let selectedDateStr = "";
   let activeFilterType = 'teacher';
-  let isMultiSelect = false;      // 預設為單選模式
-  let selectedFilterValues = []; // 空陣列表示「顯示全部」
-  let showRelatedTeachers = false; // 是否開啟顯示相關老師行程
-  let selectedRelatedTeachers = []; // 儲存使用者勾選要顯示的老師名單
+  let isMultiSelect = false;
+  let selectedFilterValues = [];
+  let showRelatedTeachers = false;
+  let selectedRelatedTeachers = [];
   let currentSemester = 0;
-  let pollTimer = null;          // Smart Polling 輪詢計時器
+  let pollTimer = null;
 
   const basePalette = [
     { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
@@ -871,29 +836,28 @@
     document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
   }
 
-  // Smart Polling：背景靜默抓取更新
   function silentFetchData() {
-    if (document.hidden) return; // 若頁面處於背景，不執行請求
+    if (document.hidden) return;
 
     fetch(`${GAS_WEB_APP_URL}?action=getAll`)
       .then(res => res.json())
       .then(data => {
-        teachers = data.lists ? (data.lists.teachers || []) : [];
-        students = data.lists ? (data.lists.students || []) : [];
-        rawAppointments = data.appointments || [];
-        updateAllUI();
+        if (data) {
+          teachers = data.lists ? (data.lists.teachers || []) : [];
+          students = data.lists ? (data.lists.students || []) : [];
+          rawAppointments = data.appointments || [];
+          updateAllUI();
+        }
       })
       .catch(err => console.error("背景自動同步失敗：", err));
   }
 
-  // 啟動定時輪詢 (每 10 秒)
   function startPolling() {
     if (!pollTimer) {
       pollTimer = setInterval(silentFetchData, 10000);
     }
   }
 
-  // 暫停定時輪詢
   function stopPolling() {
     if (pollTimer) {
       clearInterval(pollTimer);
@@ -904,14 +868,9 @@
   window.onload = function() {
     const currentMonth = new Date().getMonth();
     currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
-    
-    // 初次開頁面，顯示遮罩並載入完整資料
     fetchCloudData();
-
-    // 啟動 Smart Polling 定時器
     startPolling();
 
-    // 監聽分頁切換/網頁可見度事件
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         stopPolling();
@@ -925,18 +884,22 @@
   function fetchCloudData() {
     showLoading(true);
     fetch(`${GAS_WEB_APP_URL}?action=getAll`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("網路連線或 API 回應異常");
+        return res.json();
+      })
       .then(data => {
+        showLoading(false);
         teachers = data.lists ? (data.lists.teachers || []) : [];
         students = data.lists ? (data.lists.students || []) : [];
         rawAppointments = data.appointments || [];
-        showLoading(false);
         updateAllUI();
       })
       .catch(err => {
         showLoading(false);
-        alert("資料載入失敗，請確認 API 網址或網路連線！");
+        alert("資料載入失敗，已切換至本機暫存模式。請確認 API 網址與權限！");
         console.error(err);
+        updateAllUI(); // 即使失敗仍渲染基本 UI 介面
       });
   }
 
@@ -966,8 +929,8 @@
 
   function setFilterType(type) {
     activeFilterType = type;
-    selectedFilterValues = []; // 切換類別時重置
-    showRelatedTeachers = false; // 切換時預設關閉相關老師行程
+    selectedFilterValues = [];
+    showRelatedTeachers = false;
     selectedRelatedTeachers = [];
     
     document.getElementById('btnShowTeacher').className = `toggle-btn ${type === 'teacher' ? 'active' : ''}`;
@@ -976,7 +939,6 @@
     renderCalendars();
   }
 
-  // 切換單選/多選模式
   function toggleMultiSelectMode() {
     isMultiSelect = !isMultiSelect;
     const btn = document.getElementById('btnToggleMultiMode');
@@ -994,28 +956,25 @@
     renderCalendars();
   }
 
-  // 切換「是否開啟顯示相關老師行程」
   function toggleRelatedTeachersMode() {
-  showRelatedTeachers = !showRelatedTeachers;
-  
-  if (showRelatedTeachers && activeFilterType === 'student' && selectedFilterValues.length > 0) {
-    const autoTeachers = new Set();
-    rawAppointments.forEach(evt => {
-      // 只要晤談紀錄中的學生屬於目前被選取的任何一位學生，就將老師加入聯集
-      if (selectedFilterValues.includes(evt.student)) {
-        autoTeachers.add(evt.teacher);
-      }
-    });
-    selectedRelatedTeachers = Array.from(autoTeachers);
-  } else {
-    selectedRelatedTeachers = [];
+    showRelatedTeachers = !showRelatedTeachers;
+    
+    if (showRelatedTeachers && activeFilterType === 'student' && selectedFilterValues.length > 0) {
+      const autoTeachers = new Set();
+      rawAppointments.forEach(evt => {
+        if (selectedFilterValues.includes(evt.student)) {
+          autoTeachers.add(evt.teacher);
+        }
+      });
+      selectedRelatedTeachers = Array.from(autoTeachers);
+    } else {
+      selectedRelatedTeachers = [];
+    }
+
+    renderFilterButtons();
+    renderCalendars();
   }
 
-  renderFilterButtons();
-  renderCalendars();
-}
-
-  // 切換勾選特定的相關老師
   function toggleRelatedTeacherCheck(teacherName) {
     const index = selectedRelatedTeachers.indexOf(teacherName);
     if (index > -1) {
@@ -1047,9 +1006,7 @@
       }
     }
 
-    // 當開啟「顯示相關老師」且目前有選取學生時
     if (showRelatedTeachers && activeFilterType === 'student' && selectedFilterValues.length > 0) {
-      // 重新僅針對「當前選取的學生名單」重新尋找對應的老師，不殘留取消選取學生的老師
       const autoTeachers = new Set();
       rawAppointments.forEach(evt => {
         if (selectedFilterValues.includes(evt.student)) {
@@ -1073,7 +1030,6 @@
 
     const isAllSelected = selectedFilterValues.length === 0;
 
-    // 1. 處理相關教師區塊 (完全展開，不限制高度也不產生滾動條)
     let relatedBox = document.getElementById('relatedTeachersBox');
     if (!relatedBox) {
       relatedBox = document.createElement('div');
@@ -1091,7 +1047,6 @@
 
       if (showRelatedTeachers) {
         relHtml += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
-        // 移除 max-height 與 overflow，讓教師清單自然長大
         relHtml += `<div class="related-teachers-scroll" style="max-height: none; overflow: visible;">`;
         teachers.forEach(t => {
           const isChecked = selectedRelatedTeachers.includes(t);
@@ -1113,7 +1068,6 @@
       relatedBox.style.display = 'none';
     }
 
-    // 2. 學生/教師清單選單 (剩餘空間由底下的學生列表吸收，保持獨立滾動)
     let html = `<button class="filter-btn all" onclick="toggleFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 2px #89c493;' : ''}">${label}</button>`;
 
     list.forEach(item => {
@@ -1134,7 +1088,6 @@
 
     container.innerHTML = html;
 
-    // 3. Google 日曆同步按鈕區塊
     if (activeFilterType === 'teacher' && selectedFilterValues.length === 1) {
       const teacherName = selectedFilterValues[0];
       syncContainer.innerHTML = `
@@ -1252,6 +1205,10 @@
     })
     .then(res => res.json())
     .then(() => {
+      showLoading(false);
+      updateAllUI();
+    })
+    .catch(() => {
       showLoading(false);
       updateAllUI();
     });
