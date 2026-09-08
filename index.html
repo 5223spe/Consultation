@@ -98,12 +98,13 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
       z-index: 100;
       transition: all 0.3s ease;
-      position: sticky; /* 左右側欄固定 */
+      position: sticky;
       top: 15px;
-      max-height: calc(100vh - 30px); /* 限制側邊欄整體最大高度不超出頁面 */
+      /* 關鍵修改：嚴格卡死最大高度，確保絕不超出視窗底部 */
+      max-height: calc(100vh - 80px); 
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: hidden; /* 防止內部元件溢出 */
     }
 
     .sidebar-left.collapsed {
@@ -222,22 +223,19 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      flex: 1; /* 自動填滿剩餘高度 */
-      min-height: 0; /* 允許垂直伸縮 */
-      overflow-y: auto; /* 僅在此區域產生滾動條 */
-      padding-right: 4px;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      /* 關鍵修改：上下左右預留 4px padding，避免選取時的光暈/邊框被裁切 */
+      padding: 4px; 
+      margin-bottom: 4px;
+      box-sizing: border-box;
     }
 
     .filter-btn {
       width: 100%;
-      padding: 6px 10px;
-      border-radius: 14px;
-      font-size: 0.8rem;
-      font-weight: bold;
-      border: 1px solid transparent;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
+      box-sizing: border-box; /* 確保內外邊距包含在按鈕寬度內 */
+      transition: all 0.2s ease;
     }
 
     .filter-btn.all {
@@ -1075,7 +1073,7 @@
 
     const isAllSelected = selectedFilterValues.length === 0;
 
-    // 1. 處理相關教師區塊：獨立置於滾動區外的 sidebar-left 中（避免跟著學生清單滾動）
+    // 1. 處理相關教師區塊 (固定在學生列表上方)
     let relatedBox = document.getElementById('relatedTeachersBox');
     if (!relatedBox) {
       relatedBox = document.createElement('div');
@@ -1085,7 +1083,7 @@
 
     if (activeFilterType === 'student' && selectedFilterValues.length > 0) {
       let relHtml = `
-        <div class="related-teachers-box" style="margin-top: 0;">
+        <div class="related-teachers-box" style="margin-top: 0; margin-bottom: 8px; padding: 6px;">
           <button class="multi-mode-btn" style="margin-bottom: 4px;" onclick="toggleRelatedTeachersMode()">
             ${showRelatedTeachers ? '☑ 顯示相關教師' : '☐ 顯示相關教師'}
           </button>
@@ -1093,7 +1091,7 @@
 
       if (showRelatedTeachers) {
         relHtml += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
-        relHtml += `<div class="related-teachers-scroll">`;
+        relHtml += `<div class="related-teachers-scroll" style="max-height: 80px;">`; // 限制相關老師最高 80px
         teachers.forEach(t => {
           const isChecked = selectedRelatedTeachers.includes(t);
           relHtml += `
@@ -1114,8 +1112,8 @@
       relatedBox.style.display = 'none';
     }
 
-    // 2. 渲染滾動區內的「全部學生/教師」按鈕與個人選單
-    let html = `<button class="filter-btn all" onclick="toggleFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 3px #89c493;' : ''}">${label}</button>`;
+   // 2. 學生/教師清單選單 (只有這裡會滾動)
+    let html = `<button class="filter-btn all" onclick="toggleFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 2px #89c493;' : ''}">${label}</button>`;
 
     list.forEach(item => {
       const colors = getColorForEntity(item, activeFilterType);
@@ -1123,7 +1121,8 @@
       
       let styleStr = `background:${colors.bg}; border-color:${colors.border}; color:${colors.text};`;
       if (isSelected) {
-        styleStr += `box-shadow: 0 0 0 3px ${colors.border}; filter: brightness(0.95);`;
+        // 修改亮暗與光暈邊框，改用 2px 避免太厚擠壓，並加上黑體粗字
+        styleStr += `box-shadow: 0 0 0 2px ${colors.border}; font-weight: bold; filter: brightness(0.95);`;
       } else if (!isAllSelected) {
         styleStr += `opacity: 0.5;`;
       }
@@ -1135,6 +1134,7 @@
 
     container.innerHTML = html;
 
+    // 3. Google 日曆同步按鈕區塊
     if (activeFilterType === 'teacher' && selectedFilterValues.length === 1) {
       const teacherName = selectedFilterValues[0];
       syncContainer.innerHTML = `
