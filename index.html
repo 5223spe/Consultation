@@ -215,6 +215,9 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      max-height: 300px; /* 限制最高高度 */
+      overflow-y: auto;   /* 人數過多時自動顯示滾動條 */
+      padding-right: 4px; /* 預留滾動條邊距 */
     }
 
     .filter-btn {
@@ -1019,42 +1022,42 @@
   }
 
   function toggleFilterValue(val) {
-  if (val === 'ALL') {
-    selectedFilterValues = [];
-  } else {
-    if (isMultiSelect) {
-      const index = selectedFilterValues.indexOf(val);
-      if (index > -1) {
-        selectedFilterValues.splice(index, 1);
-      } else {
-        selectedFilterValues.push(val);
-      }
+    if (val === 'ALL') {
+      selectedFilterValues = [];
     } else {
-      if (selectedFilterValues.length === 1 && selectedFilterValues[0] === val) {
-        selectedFilterValues = [];
+      if (isMultiSelect) {
+        const index = selectedFilterValues.indexOf(val);
+        if (index > -1) {
+          selectedFilterValues.splice(index, 1);
+        } else {
+          selectedFilterValues.push(val);
+        }
       } else {
-        selectedFilterValues = [val];
+        if (selectedFilterValues.length === 1 && selectedFilterValues[0] === val) {
+          selectedFilterValues = [];
+        } else {
+          selectedFilterValues = [val];
+        }
       }
     }
-  }
 
-  // 當有開啟「顯示相關老師」且有選取學生時，重新聯集計算相關老師
-  if (showRelatedTeachers && activeFilterType === 'student' && selectedFilterValues.length > 0) {
-    // 重新收集目前所有被選取學生的老師
-    const autoTeachers = new Set(selectedRelatedTeachers); 
-    rawAppointments.forEach(evt => {
-      if (selectedFilterValues.includes(evt.student)) {
-        autoTeachers.add(evt.teacher);
-      }
-    });
-    selectedRelatedTeachers = Array.from(autoTeachers);
-  } else if (selectedFilterValues.length === 0) {
-    selectedRelatedTeachers = [];
-  }
+    // 當開啟「顯示相關老師」且目前有選取學生時
+    if (showRelatedTeachers && activeFilterType === 'student' && selectedFilterValues.length > 0) {
+      // 重新僅針對「當前選取的學生名單」重新尋找對應的老師，不殘留取消選取學生的老師
+      const autoTeachers = new Set();
+      rawAppointments.forEach(evt => {
+        if (selectedFilterValues.includes(evt.student)) {
+          autoTeachers.add(evt.teacher);
+        }
+      });
+      selectedRelatedTeachers = Array.from(autoTeachers);
+    } else {
+      selectedRelatedTeachers = [];
+    }
 
-  renderFilterButtons();
-  renderCalendars();
-}
+    renderFilterButtons();
+    renderCalendars();
+  }
 
   function renderFilterButtons() {
   const container = document.getElementById('filterTagList');
