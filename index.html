@@ -1202,115 +1202,154 @@
   }
 
   function renderCalendars() {
-    const calendarList = document.getElementById('calendarList');
-    calendarList.innerHTML = '';
-    const months = getMonthRange();
-    const colorMode = document.getElementById('colorModeSelect').value;
+  const calendarList = document.getElementById('calendarList');
+  calendarList.innerHTML = '';
+  const months = getMonthRange();
+  const colorMode = document.getElementById('colorModeSelect').value;
+  const isMobile = window.innerWidth <= 768;
 
-    const isMobile = window.innerWidth <= 768;
+  // 1. 判斷是否為「選取單一學生」模式，並找出該學生對應的所有老師
+  let targetStudent = null;
+  let relatedTeachers = new Set();
 
-    months.forEach(({ year, month }) => {
-      const monthCard = document.createElement('div');
-      monthCard.className = 'month-card';
-
-      const monthTitle = document.createElement('div');
-      monthTitle.className = 'month-title';
-      monthTitle.innerText = `${year} 年 ${month + 1} 月`;
-      monthCard.appendChild(monthTitle);
-
-      const grid = document.createElement('div');
-      grid.className = 'calendar-grid';
-
-      const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-      weekdays.forEach(day => {
-        const header = document.createElement('div');
-        header.className = 'weekday-header';
-        header.innerText = day;
-        grid.appendChild(header);
-      });
-
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const prevDaysInMonth = new Date(year, month, 0).getDate();
-
-      for (let i = firstDay - 1; i >= 0; i--) {
-        const emptyCell = document.createElement('div');
-        emptyCell.className = 'day-cell other-month';
-        emptyCell.innerHTML = `<div class="day-number">${prevDaysInMonth - i}</div>`;
-        grid.appendChild(emptyCell);
+  if (activeFilterType === 'student' && selectedFilterValues.length === 1) {
+    targetStudent = selectedFilterValues[0];
+    // 找出該學生有晤談過的所有老師
+    rawAppointments.forEach(evt => {
+      if (evt.student === targetStudent) {
+        relatedTeachers.add(evt.teacher);
       }
+    });
+  }
 
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dayCell = document.createElement('div');
-        dayCell.className = 'day-cell';
-        
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        
-        const dayNumber = document.createElement('div');
-        dayNumber.className = 'day-number';
-        dayNumber.innerText = day;
-        dayCell.appendChild(dayNumber);
+  months.forEach(({ year, month }) => {
+    const monthCard = document.createElement('div');
+    monthCard.className = 'month-card';
 
-        const eventContainer = document.createElement('div');
+    const monthTitle = document.createElement('div');
+    monthTitle.className = 'month-title';
+    monthTitle.innerText = `${year} 年 ${month + 1} 月`;
+    monthCard.appendChild(monthTitle);
 
-        const dayEvents = rawAppointments.filter(evt => evt.date === dateStr);
-        dayEvents.sort((a, b) => periods.indexOf(a.period) - periods.indexOf(b.period));
+    const grid = document.createElement('div');
+    grid.className = 'calendar-grid';
 
-        dayEvents.forEach(evt => {
-          // 篩選過濾（適用單選與多選狀態）
-          if (selectedFilterValues.length > 0) {
-            if (activeFilterType === 'teacher' && !selectedFilterValues.includes(evt.teacher)) return;
-            if (activeFilterType === 'student' && !selectedFilterValues.includes(evt.student)) return;
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    weekdays.forEach(day => {
+      const header = document.createElement('div');
+      header.className = 'weekday-header';
+      header.innerText = day;
+      grid.appendChild(header);
+    });
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevDaysInMonth = new Date(year, month, 0).getDate();
+
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'day-cell other-month';
+      emptyCell.innerHTML = `<div class="day-number">${prevDaysInMonth - i}</div>`;
+      grid.appendChild(emptyCell);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayCell = document.createElement('div');
+      dayCell.className = 'day-cell';
+      
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      
+      const dayNumber = document.createElement('div');
+      dayNumber.className = 'day-number';
+      dayNumber.innerText = day;
+      dayCell.appendChild(dayNumber);
+
+      const eventContainer = document.createElement('div');
+
+      const dayEvents = rawAppointments.filter(evt => evt.date === dateStr);
+      dayEvents.sort((a, b) => periods.indexOf(a.period) - periods.indexOf(b.period));
+
+      dayEvents.forEach(evt => {
+        let isFaded = false; // 是否為背景淡化顯示
+
+        // 2. 篩選邏輯
+        if (targetStudent) {
+          if (evt.student === targetStudent) {
+            // 本學生的晤談：正常顯示
+            isFaded = false;
+          } else if (relatedTeachers.has(evt.teacher)) {
+            // 相關老師與其他學生的晤談：淡淡地顯示
+            isFaded = true;
+          } else {
+            // 與該學生及對應老師無關：隱藏
+            return;
           }
+        } else if (selectedFilterValues.length > 0) {
+          // 一般篩選條件
+          if (activeFilterType === 'teacher' && !selectedFilterValues.includes(evt.teacher)) return;
+          if (activeFilterType === 'student' && !selectedFilterValues.includes(evt.student)) return;
+        }
 
-          const tag = document.createElement('div');
-          tag.className = 'event-tag';
+        const tag = document.createElement('div');
+        tag.className = 'event-tag';
+        
+        const keyName = (colorMode === 'teacher') ? evt.teacher : evt.student;
+        const colors = getColorForEntity(keyName, colorMode);
+        
+        tag.style.backgroundColor = colors.bg;
+        tag.style.borderColor = colors.border;
+        tag.style.color = colors.text;
+
+        // 3. 套用淡化視覺效果（透明度、灰階與指針設定）
+        if (isFaded) {
+          tag.style.opacity = '0.35';
+          tag.style.filter = 'grayscale(30%)';
+          tag.style.cursor = 'default';
+        }
+
+        const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
+
+        if (isMobile) {
+          const shortPeriod = getShortPeriod(evt.period);
+          tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>`;
           
-          const keyName = (colorMode === 'teacher') ? evt.teacher : evt.student;
-          const colors = getColorForEntity(keyName, colorMode);
-          
-          tag.style.backgroundColor = colors.bg;
-          tag.style.borderColor = colors.border;
-          tag.style.color = colors.text;
-
-          const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
-
-          if (isMobile) {
-            const shortPeriod = getShortPeriod(evt.period);
-            tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>`;
-            
+          if (!isFaded) {
             tag.addEventListener('click', function(e) {
               e.preventDefault();
               e.stopPropagation();
               confirmDeleteAppointment(evt.id, e, infoStr);
             });
-
-          } else {
-            tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>
-                             <span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
           }
-          
-          eventContainer.appendChild(tag);
-        });
+        } else {
+          // 淡化項目隱藏刪除按鈕，避免誤刪非目標學生的紀錄
+          const deleteBtnHtml = isFaded 
+            ? '' 
+            : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
+            
+          tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
+        }
+        
+        eventContainer.appendChild(tag);
+      });
 
-        dayCell.appendChild(eventContainer);
-        dayCell.onclick = () => openModal(dateStr);
-        grid.appendChild(dayCell);
-      }
+      dayCell.appendChild(eventContainer);
+      dayCell.onclick = () => openModal(dateStr);
+      grid.appendChild(dayCell);
+    }
 
-      const totalCells = firstDay + daysInMonth;
-      const nextDays = (7 - (totalCells % 7)) % 7;
-      for (let day = 1; day <= nextDays; day++) {
-        const emptyCell = document.createElement('div');
-        emptyCell.className = 'day-cell other-month';
-        emptyCell.innerHTML = `<div class="day-number">${day}</div>`;
-        grid.appendChild(emptyCell);
-      }
+    const totalCells = firstDay + daysInMonth;
+    const nextDays = (7 - (totalCells % 7)) % 7;
+    for (let day = 1; day <= nextDays; day++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'day-cell other-month';
+      emptyCell.innerHTML = `<div class="day-number">${day}</div>`;
+      grid.appendChild(emptyCell);
+    }
 
-      monthCard.appendChild(grid);
-      calendarList.appendChild(monthCard);
-    });
-  }
+    monthCard.appendChild(grid);
+    calendarList.appendChild(monthCard);
+  });
+}
 
   function openModal(dateStr) {
     selectedDateStr = dateStr;
