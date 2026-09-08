@@ -887,22 +887,24 @@
   }
 
   // 切換「單選/多選模式」
-  function toggleMultiSelectMode() {
-    isMultiSelect = !isMultiSelect;
-    selectedFilterValues = []; // 切換模式時清空選擇
-    
-    const btn = document.getElementById('btnToggleMultiMode');
-    if (isMultiSelect) {
-      btn.innerText = '☑ 多選模式中 (點擊切回單選)';
-      btn.classList.add('active');
-    } else {
-      btn.innerText = '☐ 開啟多選模式';
-      btn.classList.remove('active');
-    }
-
-    renderFilterButtons();
-    renderCalendars();
+  // 切換「單選/多選模式」
+function toggleMultiSelectMode() {
+  isMultiSelect = !isMultiSelect;
+  selectedFilterValues = []; // 切換模式時清空選擇
+  
+  const btn = document.getElementById('btnToggleMultiMode');
+  if (isMultiSelect) {
+    // 使用 innerHTML 並加入 <br> 標籤進行換行
+    btn.innerHTML = '☑ 多選模式中<br>(點擊切回單選)';
+    btn.classList.add('active');
+  } else {
+    btn.innerText = '☐ 開啟多選模式';
+    btn.classList.remove('active');
   }
+
+  renderFilterButtons();
+  renderCalendars();
+}
 
   // 根據多選/單選切換邏輯
   function toggleFilterValue(val) {
