@@ -781,6 +781,7 @@
   let isMultiSelect = false;      // 預設為單選模式
   let selectedFilterValues = []; // 空陣列表示「顯示全部」
   let currentSemester = 0;
+  let pollTimer = null;          // Smart Polling 輪詢計時器
 
   const basePalette = [
     { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
@@ -829,14 +830,10 @@
     document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
   }
 
-  window.onload = function() {
-  const currentMonth = new Date().getMonth();
-  currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
-  fetchCloudData();
+  // Smart Polling：背景靜默抓取更新
+  function silentFetchData() {
+    if (document.hidden) return; // 若頁面處於背景，不執行請求
 
-  // 建立輪詢機制：每 10 秒自動重新抓取背景資料並更新 UI (10000 毫秒)
-  setInterval(() => {
-    // 静默更新，不顯示全螢幕 loading 畫面以避免打擾使用者操作
     fetch(`${GAS_WEB_APP_URL}?action=getAll`)
       .then(res => res.json())
       .then(data => {
@@ -846,8 +843,45 @@
         updateAllUI();
       })
       .catch(err => console.error("背景自動同步失敗：", err));
-  }, 10000); 
-};
+  }
+
+  // 啟動定時輪詢 (每 10 秒)
+  function startPolling() {
+    if (!pollTimer) {
+      pollTimer = setInterval(silentFetchData, 10000);
+    }
+  }
+
+  // 暫停定時輪詢
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  window.onload = function() {
+    const currentMonth = new Date().getMonth();
+    currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
+    
+    // 初次開頁面，顯示遮罩並載入完整資料
+    fetchCloudData();
+
+    // 啟動 Smart Polling 定時器
+    startPolling();
+
+    // 監聽分頁切換/網頁可見度事件
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // 切換到背景時停止發送請求，防止消耗 GAS 額度
+        stopPolling();
+      } else {
+        // 切回目前頁面時，立即拉取一次最新資料並重啟輪詢
+        silentFetchData();
+        startPolling();
+      }
+    });
+  };
 
   function fetchCloudData() {
     showLoading(true);
@@ -901,24 +935,22 @@
   }
 
   // 切換「單選/多選模式」
-  // 切換「單選/多選模式」
-function toggleMultiSelectMode() {
-  isMultiSelect = !isMultiSelect;
-  selectedFilterValues = []; // 切換模式時清空選擇
-  
-  const btn = document.getElementById('btnToggleMultiMode');
-  if (isMultiSelect) {
-    // 使用 innerHTML 並加入 <br> 標籤進行換行
-    btn.innerHTML = '☑ 多選模式中<br>(點擊切回單選)';
-    btn.classList.add('active');
-  } else {
-    btn.innerText = '☐ 開啟多選模式';
-    btn.classList.remove('active');
-  }
+  function toggleMultiSelectMode() {
+    isMultiSelect = !isMultiSelect;
+    selectedFilterValues = []; // 切換模式時清空選擇
+    
+    const btn = document.getElementById('btnToggleMultiMode');
+    if (isMultiSelect) {
+      btn.innerHTML = '☑ 多選模式中<br>(點擊切回單選)';
+      btn.classList.add('active');
+    } else {
+      btn.innerText = '☐ 開啟多選模式';
+      btn.classList.remove('active');
+    }
 
-  renderFilterButtons();
-  renderCalendars();
-}
+    renderFilterButtons();
+    renderCalendars();
+  }
 
   // 根據多選/單選切換邏輯
   function toggleFilterValue(val) {
@@ -1291,106 +1323,101 @@ function toggleMultiSelectMode() {
   }
 
   function saveEvent() {
-  const teacher = document.getElementById('teacherSelect').value;
-  const period = document.getElementById('periodSelect').value;
-  const student = document.getElementById('studentSelect').value;
+    const teacher = document.getElementById('teacherSelect').value;
+    const period = document.getElementById('periodSelect').value;
+    const student = document.getElementById('studentSelect').value;
 
-  if (!teacher || !student) {
-    alert("請選擇教師與學生！");
-    return;
-  }
+    if (!teacher || !student) {
+      alert("請選擇教師與學生！");
+      return;
+    }
 
-  // --- 檢查時間衝突 ---
-  // 1. 檢查同老師、同日期時段衝突
-  const teacherConflict = rawAppointments.find(evt => 
-    evt.date === selectedDateStr && 
-    evt.period === period && 
-    evt.teacher === teacher
-  );
-
-  if (teacherConflict) {
-    alert(`⚠️ 登記失敗！\n\n「${teacher}」老師在 ${selectedDateStr} ${period} 已有與「${teacherConflict.student}」學生的晤談預約。`);
-    return;
-  }
-
-  // 2. 檢查同學生、同日期時段衝突
-  const studentConflict = rawAppointments.find(evt => 
-    evt.date === selectedDateStr && 
-    evt.period === period && 
-    evt.student === student
-  );
-
-  if (studentConflict) {
-    alert(`⚠️ 登記失敗！\n\n「${student}」學生在 ${selectedDateStr} ${period} 已有與「${studentConflict.teacher}」老師的晤談預約。`);
-    return;
-  }
-
-  // 3. 檢查同學生「同週」是否已排過晤談 (週數警告)
-  const targetWeek = getYearAndWeekNum(selectedDateStr);
-  const sameWeekEvent = rawAppointments.find(evt => {
-    if (evt.student !== student) return false;
-    const evtWeek = getYearAndWeekNum(evt.date);
-    return evtWeek.year === targetWeek.year && evtWeek.week === targetWeek.week;
-  });
-
-  if (sameWeekEvent) {
-    const isConfirmed = confirm(
-      `⚠️ 警告提示：\n\n學生「${student}」在本週（已排於 ${sameWeekEvent.date} ${sameWeekEvent.period}）已有一次晤談紀錄！\n\n確定要安排第二次晤談嗎？`
+    // 1. 檢查同老師、同日期時段衝突
+    const teacherConflict = rawAppointments.find(evt => 
+      evt.date === selectedDateStr && 
+      evt.period === period && 
+      evt.teacher === teacher
     );
-    if (!isConfirmed) {
-      return; // 使用者按取消，終止儲存
+
+    if (teacherConflict) {
+      alert(`⚠️ 登記失敗！\n\n「${teacher}」老師在 ${selectedDateStr} ${period} 已有與「${teacherConflict.student}」學生的晤談預約。`);
+      return;
     }
-  }
-  // --------------------
 
-  const tempId = "temp_" + Date.now();
-  const eventData = {
-    id: tempId,
-    date: selectedDateStr,
-    teacher: teacher,
-    period: period,
-    student: student
-  };
+    // 2. 檢查同學生、同日期時段衝突
+    const studentConflict = rawAppointments.find(evt => 
+      evt.date === selectedDateStr && 
+      evt.period === period && 
+      evt.student === student
+    );
 
-  closeModal();
-
-  rawAppointments.push(eventData);
-  renderCalendars();
-
-  fetch(GAS_WEB_APP_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'addAppointment',
-      eventData: eventData
-    })
-  })
-  .then(res => res.json())
-  .then(result => {
-    if (result && result.id) {
-      eventData.id = result.id;
+    if (studentConflict) {
+      alert(`⚠️ 登記失敗！\n\n「${student}」學生在 ${selectedDateStr} ${period} 已有與「${studentConflict.teacher}」老師的晤談預約。`);
+      return;
     }
-  })
-  .catch(err => {
-    alert("新增失敗，已移除該筆預約！");
-    rawAppointments = rawAppointments.filter(evt => evt.id !== tempId);
+
+    // 3. 檢查同學生「同週」是否已排過晤談
+    const targetWeek = getYearAndWeekNum(selectedDateStr);
+    const sameWeekEvent = rawAppointments.find(evt => {
+      if (evt.student !== student) return false;
+      const evtWeek = getYearAndWeekNum(evt.date);
+      return evtWeek.year === targetWeek.year && evtWeek.week === targetWeek.week;
+    });
+
+    if (sameWeekEvent) {
+      const isConfirmed = confirm(
+        `⚠️ 警告提示：\n\n學生「${student}」在本週（已排於 ${sameWeekEvent.date} ${sameWeekEvent.period}）已有一次晤談紀錄！\n\n確定要安排第二次晤談嗎？`
+      );
+      if (!isConfirmed) {
+        return;
+      }
+    }
+
+    const tempId = "temp_" + Date.now();
+    const eventData = {
+      id: tempId,
+      date: selectedDateStr,
+      teacher: teacher,
+      period: period,
+      student: student
+    };
+
+    closeModal();
+
+    rawAppointments.push(eventData);
     renderCalendars();
-  });
-}
 
-  // 計算指定日期的年份與週數
-function getYearAndWeekNum(dateStr) {
-  const d = new Date(dateStr);
-  d.setHours(0, 0, 0, 0);
-  // 設定為最接近的星期四 (ISO 8601 週號標準)
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-  const yearStart = new Date(d.getFullYear(), 0, 1);
-  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-  return { year: d.getFullYear(), week: weekNo };
-}
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'addAppointment',
+        eventData: eventData
+      })
+    })
+    .then(res => res.json())
+    .then(result => {
+      if (result && result.id) {
+        eventData.id = result.id;
+      }
+    })
+    .catch(err => {
+      alert("新增失敗，已移除該筆預約！");
+      rawAppointments = rawAppointments.filter(evt => evt.id !== tempId);
+      renderCalendars();
+    });
+  }
+
+  function getYearAndWeekNum(dateStr) {
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return { year: d.getFullYear(), week: weekNo };
+  }
 
   function clearCurrentSemesterData() {
     const correctPassword = "spe5223";
-
     const userPassword = prompt("🔐 請輸入密碼以清除當前學期紀錄：");
 
     if (userPassword === null) return;
