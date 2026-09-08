@@ -959,6 +959,24 @@
   renderFilterButtons();
   renderCalendars();
 }
+  // 切換單選/多選模式
+function toggleMultiSelectMode() {
+  isMultiSelect = !isMultiSelect;
+  const btn = document.getElementById('btnToggleMultiMode');
+  
+  if (isMultiSelect) {
+    btn.classList.add('active');
+    btn.innerText = '☑ 開啟多選模式';
+  } else {
+    btn.classList.remove('active');
+    btn.innerText = '☐ 開啟多選模式';
+    // 切換回單選模式時，預設清空選取（恢復為顯示全部）
+    selectedFilterValues = [];
+  }
+  
+  renderFilterButtons();
+  renderCalendars();
+}
 
   // 切換「是否開啟顯示相關老師行程」
 function toggleRelatedTeachersMode() {
