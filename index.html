@@ -981,23 +981,24 @@
 
   // 切換「是否開啟顯示相關老師行程」
   function toggleRelatedTeachersMode() {
-    showRelatedTeachers = !showRelatedTeachers;
-    
-    if (showRelatedTeachers && activeFilterType === 'student' && selectedFilterValues.length > 0) {
-      const autoTeachers = new Set();
-      rawAppointments.forEach(evt => {
-        if (selectedFilterValues.includes(evt.student)) {
-          autoTeachers.add(evt.teacher);
-        }
-      });
-      selectedRelatedTeachers = Array.from(autoTeachers);
-    } else {
-      selectedRelatedTeachers = [];
-    }
-
-    renderFilterButtons();
-    renderCalendars();
+  showRelatedTeachers = !showRelatedTeachers;
+  
+  if (showRelatedTeachers && activeFilterType === 'student' && selectedFilterValues.length > 0) {
+    const autoTeachers = new Set();
+    rawAppointments.forEach(evt => {
+      // 只要晤談紀錄中的學生屬於目前被選取的任何一位學生，就將老師加入聯集
+      if (selectedFilterValues.includes(evt.student)) {
+        autoTeachers.add(evt.teacher);
+      }
+    });
+    selectedRelatedTeachers = Array.from(autoTeachers);
+  } else {
+    selectedRelatedTeachers = [];
   }
+
+  renderFilterButtons();
+  renderCalendars();
+}
 
   // 切換勾選特定的相關老師
   function toggleRelatedTeacherCheck(teacherName) {
@@ -1012,40 +1013,42 @@
   }
 
   function toggleFilterValue(val) {
-    if (val === 'ALL') {
-      selectedFilterValues = [];
-    } else {
-      if (isMultiSelect) {
-        const index = selectedFilterValues.indexOf(val);
-        if (index > -1) {
-          selectedFilterValues.splice(index, 1);
-        } else {
-          selectedFilterValues.push(val);
-        }
+  if (val === 'ALL') {
+    selectedFilterValues = [];
+  } else {
+    if (isMultiSelect) {
+      const index = selectedFilterValues.indexOf(val);
+      if (index > -1) {
+        selectedFilterValues.splice(index, 1);
       } else {
-        if (selectedFilterValues.length === 1 && selectedFilterValues[0] === val) {
-          selectedFilterValues = [];
-        } else {
-          selectedFilterValues = [val];
-        }
+        selectedFilterValues.push(val);
+      }
+    } else {
+      if (selectedFilterValues.length === 1 && selectedFilterValues[0] === val) {
+        selectedFilterValues = [];
+      } else {
+        selectedFilterValues = [val];
       }
     }
-
-    if (showRelatedTeachers && activeFilterType === 'student' && selectedFilterValues.length > 0) {
-      const autoTeachers = new Set(selectedRelatedTeachers);
-      rawAppointments.forEach(evt => {
-        if (selectedFilterValues.includes(evt.student)) {
-          autoTeachers.add(evt.teacher);
-        }
-      });
-      selectedRelatedTeachers = Array.from(autoTeachers);
-    } else if (selectedFilterValues.length === 0) {
-      selectedRelatedTeachers = [];
-    }
-
-    renderFilterButtons();
-    renderCalendars();
   }
+
+  // 當有開啟「顯示相關老師」且有選取學生時，重新聯集計算相關老師
+  if (showRelatedTeachers && activeFilterType === 'student' && selectedFilterValues.length > 0) {
+    // 重新收集目前所有被選取學生的老師
+    const autoTeachers = new Set(selectedRelatedTeachers); 
+    rawAppointments.forEach(evt => {
+      if (selectedFilterValues.includes(evt.student)) {
+        autoTeachers.add(evt.teacher);
+      }
+    });
+    selectedRelatedTeachers = Array.from(autoTeachers);
+  } else if (selectedFilterValues.length === 0) {
+    selectedRelatedTeachers = [];
+  }
+
+  renderFilterButtons();
+  renderCalendars();
+}
 
   function renderFilterButtons() {
     const container = document.getElementById('filterTagList');
@@ -1072,13 +1075,13 @@
               </button>`;
     });
 
-    if (activeFilterType === 'student' && selectedFilterValues.length === 1) {
-      html += `
-        <div class="related-teachers-box">
-          <button class="multi-mode-btn" style="margin-bottom: 4px;" onclick="toggleRelatedTeachersMode()">
-            ${showRelatedTeachers ? '☑ 顯示相關老師行程' : '☐ 顯示相關老師行程'}
-          </button>
-      `;
+    if (activeFilterType === 'student' && selectedFilterValues.length > 0) {
+  html += `
+    <div class="related-teachers-box">
+      <button class="multi-mode-btn" style="margin-bottom: 4px;" onclick="toggleRelatedTeachersMode()">
+        ${showRelatedTeachers ? '☑ 顯示相關老師行程' : '☐ 顯示相關老師行程'}
+      </button>
+  `;
 
       if (showRelatedTeachers) {
         html += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
