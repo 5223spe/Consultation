@@ -662,6 +662,12 @@
     .related-teacher-item input {
       cursor: pointer;
     }
+    .related-teachers-scroll {
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+    
   </style>
 </head>
 <body>
@@ -1051,67 +1057,72 @@
 }
 
   function renderFilterButtons() {
-    const container = document.getElementById('filterTagList');
-    const syncContainer = document.getElementById('calendarSyncContainer');
-    const list = activeFilterType === 'teacher' ? teachers : students;
-    const label = activeFilterType === 'teacher' ? '全部教師' : '全部學生';
+  const container = document.getElementById('filterTagList');
+  const syncContainer = document.getElementById('calendarSyncContainer');
+  const list = activeFilterType === 'teacher' ? teachers : students;
+  const label = activeFilterType === 'teacher' ? '全部教師' : '全部學生';
 
-    const isAllSelected = selectedFilterValues.length === 0;
-    let html = `<button class="filter-btn all" onclick="toggleFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 3px #89c493;' : ''}">${label}</button>`;
+  const isAllSelected = selectedFilterValues.length === 0;
+  let html = `<button class="filter-btn all" onclick="toggleFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 3px #89c493;' : ''}">${label}</button>`;
 
-    list.forEach(item => {
-      const colors = getColorForEntity(item, activeFilterType);
-      const isSelected = selectedFilterValues.includes(item);
-      
-      let styleStr = `background:${colors.bg}; border-color:${colors.border}; color:${colors.text};`;
-      if (isSelected) {
-        styleStr += `box-shadow: 0 0 0 3px ${colors.border}; filter: brightness(0.95);`;
-      } else if (!isAllSelected) {
-        styleStr += `opacity: 0.5;`;
-      }
+  // 移至上方：只要選取學生，便優先將「相關老師選單」渲染在最頂端
+  if (activeFilterType === 'student' && selectedFilterValues.length > 0) {
+    html += `
+      <div class="related-teachers-box">
+        <button class="multi-mode-btn" style="margin-bottom: 4px;" onclick="toggleRelatedTeachersMode()">
+          ${showRelatedTeachers ? '☑ 顯示相關老師行程' : '☐ 顯示相關老師行程'}
+        </button>
+    `;
 
-      html += `<button class="filter-btn" onclick="toggleFilterValue('${item}')" style="${styleStr}">
-                ${item} ${isSelected ? '✓' : ''}
-              </button>`;
-    });
-
-    if (activeFilterType === 'student' && selectedFilterValues.length > 0) {
-  html += `
-    <div class="related-teachers-box">
-      <button class="multi-mode-btn" style="margin-bottom: 4px;" onclick="toggleRelatedTeachersMode()">
-        ${showRelatedTeachers ? '☑ 顯示相關老師行程' : '☐ 顯示相關老師行程'}
-      </button>
-  `;
-
-      if (showRelatedTeachers) {
-        html += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
-        teachers.forEach(t => {
-          const isChecked = selectedRelatedTeachers.includes(t);
-          html += `
-            <label class="related-teacher-item">
-              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRelatedTeacherCheck('${t}')">
-              <span>${t}</span>
-            </label>
-          `;
-        });
-      }
-
+    if (showRelatedTeachers) {
+      html += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
+      // 可加上 max-height 避免老師名單太長佔據空間
+      html += `<div class="related-teachers-scroll">`;
+      teachers.forEach(t => {
+        const isChecked = selectedRelatedTeachers.includes(t);
+        html += `
+          <label class="related-teacher-item">
+            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRelatedTeacherCheck('${t}')">
+            <span>${t}</span>
+          </label>
+        `;
+      });
       html += `</div>`;
     }
 
-    container.innerHTML = html;
-
-    if (activeFilterType === 'teacher' && selectedFilterValues.length === 1) {
-      const teacherName = selectedFilterValues[0];
-      syncContainer.innerHTML = `
-        <button class="btn-sync-gcal" onclick="syncTeacherToGoogleCalendar('${teacherName}')">
-          📅 同步「${teacherName}」晤談至 Google 日曆
-        </button>
-      `;
-    } else {
-      syncContainer.innerHTML = '';
-    }
+    html += `</div>`;
   }
+
+  // 學生/教師清單接續在後
+  list.forEach(item => {
+    const colors = getColorForEntity(item, activeFilterType);
+    const isSelected = selectedFilterValues.includes(item);
+    
+    let styleStr = `background:${colors.bg}; border-color:${colors.border}; color:${colors.text};`;
+    if (isSelected) {
+      styleStr += `box-shadow: 0 0 0 3px ${colors.border}; filter: brightness(0.95);`;
+    } else if (!isAllSelected) {
+      styleStr += `opacity: 0.5;`;
+    }
+
+    html += `<button class="filter-btn" onclick="toggleFilterValue('${item}')" style="${styleStr}">
+              ${item} ${isSelected ? '✓' : ''}
+            </button>`;
+  });
+
+  container.innerHTML = html;
+
+  if (activeFilterType === 'teacher' && selectedFilterValues.length === 1) {
+    const teacherName = selectedFilterValues[0];
+    syncContainer.innerHTML = `
+      <button class="btn-sync-gcal" onclick="syncTeacherToGoogleCalendar('${teacherName}')">
+        📅 同步「${teacherName}」晤談至 Google 日曆
+      </button>
+    `;
+  } else {
+    syncContainer.innerHTML = '';
+  }
+}
   
   function syncTeacherToGoogleCalendar(teacherName) {
     const teacherEvents = rawAppointments.filter(evt => evt.teacher === teacherName);
