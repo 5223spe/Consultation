@@ -98,9 +98,12 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
       z-index: 100;
       transition: all 0.3s ease;
-      overflow: hidden;
       position: sticky; /* 左右側欄固定 */
       top: 15px;
+      max-height: calc(100vh - 30px); /* 限制側邊欄整體最大高度不超出頁面 */
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .sidebar-left.collapsed {
@@ -219,8 +222,9 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      max-height: calc(100vh - 240px); /* 自動滿版至螢幕最下方 */
-      overflow-y: auto;
+      flex: 1; /* 自動填滿剩餘高度 */
+      min-height: 0; /* 允許垂直伸縮 */
+      overflow-y: auto; /* 僅在此區域產生滾動條 */
       padding-right: 4px;
     }
 
@@ -1070,39 +1074,49 @@
     const label = activeFilterType === 'teacher' ? '全部教師' : '全部學生';
 
     const isAllSelected = selectedFilterValues.length === 0;
-    let html = '';
 
-    // 1. 相關教師區塊：移至最上方，且文字改為「顯示相關教師」
+    // 1. 處理相關教師區塊：獨立置於滾動區外的 sidebar-left 中（避免跟著學生清單滾動）
+    let relatedBox = document.getElementById('relatedTeachersBox');
+    if (!relatedBox) {
+      relatedBox = document.createElement('div');
+      relatedBox.id = 'relatedTeachersBox';
+      container.parentNode.insertBefore(relatedBox, container);
+    }
+
     if (activeFilterType === 'student' && selectedFilterValues.length > 0) {
-      html += `
-        <div class="related-teachers-box">
+      let relHtml = `
+        <div class="related-teachers-box" style="margin-top: 0;">
           <button class="multi-mode-btn" style="margin-bottom: 4px;" onclick="toggleRelatedTeachersMode()">
             ${showRelatedTeachers ? '☑ 顯示相關教師' : '☐ 顯示相關教師'}
           </button>
       `;
 
       if (showRelatedTeachers) {
-        html += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
-        html += `<div class="related-teachers-scroll">`;
+        relHtml += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
+        relHtml += `<div class="related-teachers-scroll">`;
         teachers.forEach(t => {
           const isChecked = selectedRelatedTeachers.includes(t);
-          html += `
+          relHtml += `
             <label class="related-teacher-item">
               <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRelatedTeacherCheck('${t}')">
               <span>${t}</span>
             </label>
           `;
         });
-        html += `</div>`;
+        relHtml += `</div>`;
       }
 
-      html += `</div>`;
+      relHtml += `</div>`;
+      relatedBox.innerHTML = relHtml;
+      relatedBox.style.display = 'block';
+    } else {
+      relatedBox.innerHTML = '';
+      relatedBox.style.display = 'none';
     }
 
-    // 2. 「全部學生/全部教師」按鈕：接在相關教師區塊下方
-    html += `<button class="filter-btn all" onclick="toggleFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 3px #89c493;' : ''}">${label}</button>`;
+    // 2. 渲染滾動區內的「全部學生/教師」按鈕與個人選單
+    let html = `<button class="filter-btn all" onclick="toggleFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 3px #89c493;' : ''}">${label}</button>`;
 
-    // 3. 各個學生/教師選項按鈕
     list.forEach(item => {
       const colors = getColorForEntity(item, activeFilterType);
       const isSelected = selectedFilterValues.includes(item);
