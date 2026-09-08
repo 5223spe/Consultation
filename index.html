@@ -830,10 +830,24 @@
   }
 
   window.onload = function() {
-    const currentMonth = new Date().getMonth();
-    currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
-    fetchCloudData();
-  };
+  const currentMonth = new Date().getMonth();
+  currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
+  fetchCloudData();
+
+  // 建立輪詢機制：每 10 秒自動重新抓取背景資料並更新 UI (10000 毫秒)
+  setInterval(() => {
+    // 静默更新，不顯示全螢幕 loading 畫面以避免打擾使用者操作
+    fetch(`${GAS_WEB_APP_URL}?action=getAll`)
+      .then(res => res.json())
+      .then(data => {
+        teachers = data.lists ? (data.lists.teachers || []) : [];
+        students = data.lists ? (data.lists.students || []) : [];
+        rawAppointments = data.appointments || [];
+        updateAllUI();
+      })
+      .catch(err => console.error("背景自動同步失敗：", err));
+  }, 10000); 
+};
 
   function fetchCloudData() {
     showLoading(true);
@@ -1277,74 +1291,102 @@ function toggleMultiSelectMode() {
   }
 
   function saveEvent() {
-    const teacher = document.getElementById('teacherSelect').value;
-    const period = document.getElementById('periodSelect').value;
-    const student = document.getElementById('studentSelect').value;
+  const teacher = document.getElementById('teacherSelect').value;
+  const period = document.getElementById('periodSelect').value;
+  const student = document.getElementById('studentSelect').value;
 
-    if (!teacher || !student) {
-      alert("請選擇教師與學生！");
-      return;
-    }
-
-    // --- 檢查時間衝突 ---
-    // 1. 檢查同老師、同日期時段衝突
-    const teacherConflict = rawAppointments.find(evt => 
-      evt.date === selectedDateStr && 
-      evt.period === period && 
-      evt.teacher === teacher
-    );
-
-    if (teacherConflict) {
-      alert(`⚠️ 登記失敗！\n\n「${teacher}」老師在 ${selectedDateStr} ${period} 已有與「${teacherConflict.student}」學生的晤談預約。`);
-      return;
-    }
-
-    // 2. 檢查同學生、同日期時段衝突
-    const studentConflict = rawAppointments.find(evt => 
-      evt.date === selectedDateStr && 
-      evt.period === period && 
-      evt.student === student
-    );
-
-    if (studentConflict) {
-      alert(`⚠️ 登記失敗！\n\n「${student}」學生在 ${selectedDateStr} ${period} 已有與「${studentConflict.teacher}」老師的晤談預約。`);
-      return;
-    }
-    // --------------------
-
-    const tempId = "temp_" + Date.now();
-    const eventData = {
-      id: tempId,
-      date: selectedDateStr,
-      teacher: teacher,
-      period: period,
-      student: student
-    };
-
-    closeModal();
-
-    rawAppointments.push(eventData);
-    renderCalendars();
-
-    fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'addAppointment',
-        eventData: eventData
-      })
-    })
-    .then(res => res.json())
-    .then(result => {
-      if (result && result.id) {
-        eventData.id = result.id;
-      }
-    })
-    .catch(err => {
-      alert("新增失敗，已移除該筆預約！");
-      rawAppointments = rawAppointments.filter(evt => evt.id !== tempId);
-      renderCalendars();
-    });
+  if (!teacher || !student) {
+    alert("請選擇教師與學生！");
+    return;
   }
+
+  // --- 檢查時間衝突 ---
+  // 1. 檢查同老師、同日期時段衝突
+  const teacherConflict = rawAppointments.find(evt => 
+    evt.date === selectedDateStr && 
+    evt.period === period && 
+    evt.teacher === teacher
+  );
+
+  if (teacherConflict) {
+    alert(`⚠️ 登記失敗！\n\n「${teacher}」老師在 ${selectedDateStr} ${period} 已有與「${teacherConflict.student}」學生的晤談預約。`);
+    return;
+  }
+
+  // 2. 檢查同學生、同日期時段衝突
+  const studentConflict = rawAppointments.find(evt => 
+    evt.date === selectedDateStr && 
+    evt.period === period && 
+    evt.student === student
+  );
+
+  if (studentConflict) {
+    alert(`⚠️ 登記失敗！\n\n「${student}」學生在 ${selectedDateStr} ${period} 已有與「${studentConflict.teacher}」老師的晤談預約。`);
+    return;
+  }
+
+  // 3. 檢查同學生「同週」是否已排過晤談 (週數警告)
+  const targetWeek = getYearAndWeekNum(selectedDateStr);
+  const sameWeekEvent = rawAppointments.find(evt => {
+    if (evt.student !== student) return false;
+    const evtWeek = getYearAndWeekNum(evt.date);
+    return evtWeek.year === targetWeek.year && evtWeek.week === targetWeek.week;
+  });
+
+  if (sameWeekEvent) {
+    const isConfirmed = confirm(
+      `⚠️ 警告提示：\n\n學生「${student}」在本週（已排於 ${sameWeekEvent.date} ${sameWeekEvent.period}）已有一次晤談紀錄！\n\n確定要安排第二次晤談嗎？`
+    );
+    if (!isConfirmed) {
+      return; // 使用者按取消，終止儲存
+    }
+  }
+  // --------------------
+
+  const tempId = "temp_" + Date.now();
+  const eventData = {
+    id: tempId,
+    date: selectedDateStr,
+    teacher: teacher,
+    period: period,
+    student: student
+  };
+
+  closeModal();
+
+  rawAppointments.push(eventData);
+  renderCalendars();
+
+  fetch(GAS_WEB_APP_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'addAppointment',
+      eventData: eventData
+    })
+  })
+  .then(res => res.json())
+  .then(result => {
+    if (result && result.id) {
+      eventData.id = result.id;
+    }
+  })
+  .catch(err => {
+    alert("新增失敗，已移除該筆預約！");
+    rawAppointments = rawAppointments.filter(evt => evt.id !== tempId);
+    renderCalendars();
+  });
+}
+
+  // 計算指定日期的年份與週數
+function getYearAndWeekNum(dateStr) {
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  // 設定為最接近的星期四 (ISO 8601 週號標準)
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { year: d.getFullYear(), week: weekNo };
+}
 
   function clearCurrentSemesterData() {
     const correctPassword = "spe5223";
