@@ -111,24 +111,24 @@
     }
 
     .sidebar-right {
-  width: 240px;
-  flex-shrink: 0;
-  background: #fff;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px;
-  padding-bottom: 24px; /* 【新增】為內部底部按鈕預留足夠 space */
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  z-index: 100;
-  transition: all 0.3s ease;
-  position: sticky;
-  top: 15px;
-  max-height: calc(100vh - 40px); /* 【修改】微調限制高度，避免被網頁邊框推擠 */
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box; /* 【新增】確保 padding 不會撐大總高度 */
-}
+      width: 240px;
+      flex-shrink: 0;
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      padding-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      z-index: 100;
+      transition: all 0.3s ease;
+      position: sticky;
+      top: 15px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
 
     .sidebar-right.collapsed {
       width: 0;
@@ -231,24 +231,24 @@
     }
 
     .filter-btn {
-  width: 100%;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-  padding: 6px 10px;        /* 恢復與奶茶色版本一致的內襯 */
-  border-radius: 14px;      /* 恢復與奶茶色版本一致的圓角 */
-  font-size: 0.8rem;        /* 恢復字體大小 */
-  font-weight: bold;
-  cursor: pointer;
-  border: 1px solid transparent;
-  text-align: center;
-}
+      width: 100%;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+      padding: 6px 10px;
+      border-radius: 14px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      border: 1px solid transparent;
+      text-align: center;
+    }
 
     .filter-btn.all {
-  background: #6d5244;      /* 保留您設定的配色 */
-  color: white;
-  border-radius: 6px;
-  border: 1px solid #543d31;
-}
+      background: #6d5244;
+      color: white;
+      border-radius: 6px;
+      border: 1px solid #543d31;
+    }
 
     .btn-sync-gcal {
       width: 100%;
@@ -344,6 +344,7 @@
       font-weight: bold;
       color: #475569;
       margin-bottom: 4px;
+      line-height: 1.2;
     }
 
     .day-number {
@@ -438,43 +439,40 @@
       white-space: nowrap;
     }
 
-    /* 恢復標籤清單的彈性水平排列與氣泡樣式 */
-   .tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px; /* 縮小標籤之間的間隔 */
-  max-height: none;
-  overflow-y: visible;
-}
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-height: none;
+      overflow-y: visible;
+    }
 
-    /* 恢復膠囊形狀 short tag 樣式 */
     .manage-tag {
-  padding: 3px 8px;         /* 與奶茶色版本一致 */
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  border: 1px solid transparent;
-  width: auto;              /* 取消固定 33% 寬度限制 */
-  box-sizing: border-box;
-  justify-content: center;
-  white-space: nowrap;
-}
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      border: 1px solid transparent;
+      width: auto;
+      box-sizing: border-box;
+      justify-content: center;
+      white-space: nowrap;
+    }
 
     .manage-tag .delete-btn {
-  cursor: pointer;
-  font-weight: bold;
-  opacity: 0.6;
-  margin-left: 1px;
-}
+      cursor: pointer;
+      font-weight: bold;
+      opacity: 0.6;
+      margin-left: 1px;
+    }
 
     .manage-tag .delete-btn:hover {
       opacity: 1;
     }
 
-    /* 段考專用的長條跨行樣式 */
     .manage-tag.exam-tag {
       width: 100%;
       border-radius: 8px;
@@ -483,15 +481,15 @@
     }
 
     .action-btn-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 15px;
-  margin-bottom: 15px; /* 【新增】確保按鈕底部有安全邊距 */
-  padding-top: 12px;
-  border-top: 1px solid #e2e8f0;
-  flex-shrink: 0;       /* 【新增】防止按鈕組在捲動時被擠壓變形 */
-}
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
 
     .action-btn {
       color: white;
@@ -718,13 +716,14 @@
       padding-right: 4px;
     }
 
+    /* 調整選擇段考日期按鈕，使其內容保持在同一行 */
     .agoda-picker-trigger {
       width: 100%;
       padding: 8px 10px;
       background: #fff;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: #334155;
       text-align: left;
       cursor: pointer;
@@ -732,6 +731,13 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      white-space: nowrap;
+      gap: 6px;
+    }
+    .agoda-picker-trigger span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .agoda-picker-trigger:hover { border-color: #0f766e; }
     .agoda-cal-container { display: flex; flex-direction: column; gap: 10px; }
@@ -871,12 +877,14 @@
         
         <div class="agoda-picker-trigger" onclick="openAgodaDatePicker()">
           <span id="agodaDateDisplay">📅 選擇段考日期</span>
-          <span style="font-size: 0.75rem; color: #0f766e;">選擇</span>
+          <span style="font-size: 0.75rem; color: #0f766e; flex-shrink: 0;">選擇</span>
         </div>
 
         <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="addExamDate()">新增段考</button>
+
+        <!-- 將已登錄段考清單放入此容器，使其可隨箭頭一併收合 -->
+        <div class="tag-list" id="examTagList" style="margin-top: 6px;"></div>
       </div>
-      <div class="tag-list" id="examTagList" style="margin-top: 6px;"></div>
     </div>
 
     <div class="action-btn-group">
@@ -1360,7 +1368,7 @@
               </div>`;
     }).join('');
 
-    /* 渲染段考日期標籤 (保持滿版跨列) */
+    /* 渲染段考日期標籤 */
     eList.innerHTML = examDates.map((item, index) => {
       let titleText = "";
       let dateText = "";
@@ -1530,7 +1538,7 @@
 
     agodaStart = null;
     agodaEnd = null;
-    document.getElementById('agodaDateDisplay').innerText = '📅 點擊選擇段考日期區間';
+    document.getElementById('agodaDateDisplay').innerText = '📅 選擇段考日期';
 
     syncExamDatesToCloud();
   }
@@ -1560,9 +1568,12 @@
     });
   }
 
+  /* 修改：允許多個段考重疊並同時顯示 */
   function getExamInfoForDate(targetDateStr) {
     const target = new Date(targetDateStr);
     target.setHours(0, 0, 0, 0);
+
+    let matchedNames = [];
 
     for (const item of examDates) {
       if (typeof item === 'object' && item !== null) {
@@ -1572,7 +1583,9 @@
         end.setHours(0, 0, 0, 0);
 
         if (target >= start && target <= end) {
-          return item;
+          if (!matchedNames.includes(item.name || "段考")) {
+            matchedNames.push(item.name || "段考");
+          }
         }
       } else if (typeof item === 'string') {
         if (item.includes('~')) {
@@ -1582,12 +1595,16 @@
           start.setHours(0, 0, 0, 0);
           end.setHours(0, 0, 0, 0);
           if (target >= start && target <= end) {
-            return { name: "段考", startDate: startStr, endDate: endStr };
+            if (!matchedNames.includes("段考")) matchedNames.push("段考");
           }
         } else if (item === targetDateStr) {
-          return { name: "段考", startDate: item, endDate: item };
+          if (!matchedNames.includes("段考")) matchedNames.push("段考");
         }
       }
+    }
+
+    if (matchedNames.length > 0) {
+      return { name: matchedNames.join('/') };
     }
     return null;
   }
