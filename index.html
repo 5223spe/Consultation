@@ -111,23 +111,23 @@
     }
 
     .sidebar-right {
-  width: 240px;
-  flex-shrink: 0;
-  background: #fff;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  z-index: 100;
-  transition: all 0.3s ease;
-  position: sticky;
-  top: 15px;
-  /* --- 新增獨立滾輪關鍵設定 --- */
-  max-height: calc(100vh - 30px);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
+      width: 240px;
+      flex-shrink: 0;
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      z-index: 100;
+      transition: all 0.3s ease;
+      position: sticky;
+      top: 15px;
+      /* --- 右側獨立滾輪關鍵設定 --- */
+      max-height: calc(100vh - 30px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
 
     .sidebar-right.collapsed {
       width: 0;
@@ -430,27 +430,28 @@
       white-space: nowrap;
     }
 
+    /* 取消 tag-list 本身的獨立滾輪與高度限制，跟隨右側整體滾動 */
     .tag-list {
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
-      max-height: 150px;
-      overflow-y: auto;
+      max-height: none;
+      overflow-y: visible;
     }
 
     .manage-tag {
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  border: 1px solid transparent;
-  width: 100%; /* 讓紅色框充滿寬度 */
-  word-break: break-all;
-}
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      border: 1px solid transparent;
+      width: 100%; /* 讓紅色框充滿寬度 */
+      word-break: break-all;
+    }
 
     .manage-tag .delete-btn {
       cursor: pointer;
@@ -775,17 +776,17 @@
     }
 
     .date-range-btn {
-  width: 100%;
-  padding: 8px 10px;
-  font-size: 0.82rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
     
   </style>
 </head>
@@ -1394,6 +1395,7 @@
               </div>`;
     }).join('');
   }
+
   function addTeacher() {
     const input = document.getElementById('newTeacherInput');
     const name = input.value.trim();
