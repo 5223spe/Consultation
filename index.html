@@ -122,7 +122,6 @@
       transition: all 0.3s ease;
       position: sticky;
       top: 15px;
-      /* --- 右側獨立滾輪關鍵設定 --- */
       max-height: calc(100vh - 30px);
       overflow-y: auto;
       display: flex;
@@ -321,7 +320,6 @@
       cursor: default;
     }
 
-    /* 段考日灰化樣式 (無紅色區塊，僅變灰並文字顯示) */
     .day-cell.exam-day {
       background-color: #e2e8f0 !important;
       color: #475569;
@@ -430,33 +428,46 @@
       white-space: nowrap;
     }
 
-    /* 取消 tag-list 本身的獨立滾輪與高度限制，跟隨右側整體滾動 */
+    /* 恢復標籤清單的彈性水平排列與氣泡樣式 */
     .tag-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 6px;
       max-height: none;
       overflow-y: visible;
     }
 
+    /* 恢復膠囊形狀 short tag 樣式 */
     .manage-tag {
-      padding: 4px 8px;
-      border-radius: 8px;
-      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 16px;
+      font-size: 0.8rem;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 6px;
+      gap: 4px;
       border: 1px solid transparent;
-      width: 100%; /* 讓紅色框充滿寬度 */
-      word-break: break-all;
+      width: auto; /* 讓寬度隨文字長度縮放 */
+      word-break: normal;
     }
 
     .manage-tag .delete-btn {
       cursor: pointer;
       font-weight: bold;
       opacity: 0.6;
+      margin-left: 2px;
+    }
+
+    .manage-tag .delete-btn:hover {
+      opacity: 1;
+    }
+
+    /* 段考專用的長條跨行樣式 */
+    .manage-tag.exam-tag {
+      width: 100%;
+      border-radius: 8px;
+      justify-content: space-between;
+      padding: 6px 10px;
     }
 
     .action-btn-group {
@@ -693,20 +704,6 @@
       padding-right: 4px;
     }
 
-    .date-range-container {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-bottom: 8px;
-    }
-
-    .date-range-container label {
-      font-size: 0.75rem;
-      color: #475569;
-      font-weight: bold;
-    }
-
-    /* Agoda 風格日期選擇器 CSS */
     .agoda-picker-trigger {
       width: 100%;
       padding: 8px 10px;
@@ -722,14 +719,8 @@
       align-items: center;
       justify-content: space-between;
     }
-    .agoda-picker-trigger:hover {
-      border-color: #0f766e;
-    }
-    .agoda-cal-container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    .agoda-picker-trigger:hover { border-color: #0f766e; }
+    .agoda-cal-container { display: flex; flex-direction: column; gap: 10px; }
     .agoda-cal-header {
       display: flex;
       justify-content: space-between;
@@ -757,13 +748,8 @@
       border-radius: 4px;
       user-select: none;
     }
-    .agoda-day-cell:hover:not(.disabled) {
-      background-color: #ccfbf1;
-    }
-    .agoda-day-cell.disabled {
-      color: #cbd5e1;
-      cursor: not-allowed;
-    }
+    .agoda-day-cell:hover:not(.disabled) { background-color: #ccfbf1; }
+    .agoda-day-cell.disabled { color: #cbd5e1; cursor: not-allowed; }
     .agoda-day-cell.selected-start, .agoda-day-cell.selected-end {
       background-color: #0f766e !important;
       color: white !important;
@@ -774,20 +760,6 @@
       background-color: #e0f2fe !important;
       color: #0369a1;
     }
-
-    .date-range-btn {
-      width: 100%;
-      padding: 8px 10px;
-      font-size: 0.82rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-    }
-    
   </style>
 </head>
 <body>
@@ -868,7 +840,6 @@
       <div class="tag-list" id="studentTagList"></div>
     </div>
 
-    <!-- 段考日期管理 (向下折疊 + Agoda式區間選擇) -->
     <div class="manage-card">
       <div class="manage-card-header" onclick="toggleExamSection()">
         <h3>段考日期管理</h3>
@@ -928,7 +899,6 @@
   </div>
 </div>
 
-<!-- Agoda 式日期區間選擇 Modal -->
 <div class="modal" id="agodaDateModal">
   <div class="modal-content" style="max-width: 350px;">
     <div class="modal-header" style="font-size: 1rem;">選擇段考日期區間 (點選開始與結束)</div>
@@ -958,7 +928,7 @@
 
   let teachers = [];
   let students = [];
-  let examDates = []; // 支援物件陣列 [{name, startDate, endDate}] 或舊有的字串
+  let examDates = []; 
   let rawAppointments = []; 
   const periods = ["第一節", "第二節", "第三節", "第四節", "午休", "第五節", "第六節", "第七節", "第八節"];
 
@@ -979,7 +949,6 @@
   let currentSemester = 0;
   let pollTimer = null;
 
-  // Agoda 式選擇器變數
   let agodaStart = null;
   let agodaEnd = null;
   let agodaViewYear = new Date().getFullYear();
@@ -1359,21 +1328,25 @@
     const sList = document.getElementById('studentTagList');
     const eList = document.getElementById('examTagList');
 
+    /* 渲染教師膠囊標籤 */
     tList.innerHTML = teachers.map((t) => {
       const colors = getColorForEntity(t, 'teacher');
       return `<div class="manage-tag" style="background:${colors.bg}; border-color:${colors.border}; color:${colors.text};">
-                ${t} <span class="delete-btn" onclick="removeTeacherByName('${t}')">&times;</span>
+                <span>${t}</span>
+                <span class="delete-btn" onclick="removeTeacherByName('${t}')">&times;</span>
               </div>`;
     }).join('');
 
+    /* 渲染學生膠囊標籤 */
     sList.innerHTML = students.map((s) => {
       const colors = getColorForEntity(s, 'student');
       return `<div class="manage-tag" style="background:${colors.bg}; border-color:${colors.border}; color:${colors.text};">
-                ${s} <span class="delete-btn" onclick="removeStudentByName('${s}')">&times;</span>
+                <span>${s}</span>
+                <span class="delete-btn" onclick="removeStudentByName('${s}')">&times;</span>
               </div>`;
     }).join('');
 
-    // --- 修改段考標籤換行顯示 ---
+    /* 渲染段考日期標籤 (保持滿版跨列) */
     eList.innerHTML = examDates.map((item, index) => {
       let titleText = "";
       let dateText = "";
@@ -1386,7 +1359,7 @@
         dateText = String(item);
       }
 
-      return `<div class="manage-tag" style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
+      return `<div class="manage-tag exam-tag" style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
                 <div>
                   <strong>${titleText}：</strong><br>
                   <span>${dateText}</span>
@@ -1426,7 +1399,6 @@
     syncListsToCloud();
   }
 
-  /* Agoda 日期選擇器相關控制 */
   function openAgodaDatePicker() {
     document.getElementById('agodaDateModal').style.display = 'flex';
     renderAgodaCalendar();
