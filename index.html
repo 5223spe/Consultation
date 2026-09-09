@@ -229,16 +229,24 @@
     }
 
     .filter-btn {
-      width: 100%;
-      box-sizing: border-box;
-      transition: all 0.2s ease;
-    }
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  padding: 8px 12px;         /* 加大內襯讓按鈕更豐滿 */
+  border-radius: 20px;        /* 設定大圓角，打造膠囊效果 */
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent; /* 顯眼又有質感的邊框 */
+  text-align: center;
+}
 
     .filter-btn.all {
-      background: #386641;
-      color: white;
-      border-radius: 6px;
-    }
+  background: #6d5244;       /* 搭配圖片的深棕色系 */
+  color: white;
+  border-radius: 20px;
+  border: 1.5px solid #543d31;
+}
 
     .btn-sync-gcal {
       width: 100%;
