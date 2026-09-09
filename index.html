@@ -330,7 +330,6 @@
       cursor: default;
     }
 
-    /* 週六日與段考日灰底設定 */
     .day-cell.weekend {
       background-color: #f1f5f9;
       color: #64748b;
@@ -1043,6 +1042,16 @@
     document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
   }
 
+  // 比對資料是否有變動
+  function hasDataChanged(newTeachers, newStudents, newExamDates, newAppointments) {
+    return (
+      JSON.stringify(teachers) !== JSON.stringify(newTeachers) ||
+      JSON.stringify(students) !== JSON.stringify(newStudents) ||
+      JSON.stringify(examDates) !== JSON.stringify(newExamDates) ||
+      JSON.stringify(rawAppointments) !== JSON.stringify(newAppointments)
+    );
+  }
+
   function silentFetchData() {
     if (document.hidden) return;
 
@@ -1050,11 +1059,19 @@
       .then(res => res.json())
       .then(data => {
         if (data) {
-          teachers = data.lists ? (data.lists.teachers || []) : [];
-          students = data.lists ? (data.lists.students || []) : [];
-          examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
-          rawAppointments = data.appointments || [];
-          updateAllUI();
+          const newTeachers = data.lists ? (data.lists.teachers || []) : [];
+          const newStudents = data.lists ? (data.lists.students || []) : [];
+          const newExamDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
+          const newAppointments = data.appointments || [];
+
+          // 只有資料真的改變時才觸發 UI 更新
+          if (hasDataChanged(newTeachers, newStudents, newExamDates, newAppointments)) {
+            teachers = newTeachers;
+            students = newStudents;
+            examDates = newExamDates;
+            rawAppointments = newAppointments;
+            updateAllUI();
+          }
         }
       })
       .catch(err => console.error("背景自動同步失敗：", err));
@@ -1396,34 +1413,58 @@
     }).join('');
   }
 
+  // 樂觀更新：新增教師
   function addTeacher() {
     const input = document.getElementById('newTeacherInput');
     const name = input.value.trim();
     if (name && !teachers.includes(name)) {
+      const oldTeachers = [...teachers];
       teachers.push(name);
       input.value = '';
-      syncListsToCloud();
+      updateAllUI(); // 樂觀更新畫面
+      syncListsToCloud(() => {
+        teachers = oldTeachers;
+        updateAllUI();
+      });
     }
   }
 
+  // 樂觀更新：刪除教師
   function removeTeacherByName(name) {
+    const oldTeachers = [...teachers];
     teachers = teachers.filter(t => t !== name);
-    syncListsToCloud();
+    updateAllUI(); // 樂觀更新畫面
+    syncListsToCloud(() => {
+      teachers = oldTeachers;
+      updateAllUI();
+    });
   }
 
+  // 樂觀更新：新增學生
   function addStudent() {
     const input = document.getElementById('newStudentInput');
     const name = input.value.trim();
     if (name && !students.includes(name)) {
+      const oldStudents = [...students];
       students.push(name);
       input.value = '';
-      syncListsToCloud();
+      updateAllUI(); // 樂觀更新畫面
+      syncListsToCloud(() => {
+        students = oldStudents;
+        updateAllUI();
+      });
     }
   }
 
+  // 樂觀更新：刪除學生
   function removeStudentByName(name) {
+    const oldStudents = [...students];
     students = students.filter(s => s !== name);
-    syncListsToCloud();
+    updateAllUI(); // 樂觀更新畫面
+    syncListsToCloud(() => {
+      students = oldStudents;
+      updateAllUI();
+    });
   }
 
   function openAgodaDatePicker() {
@@ -1525,6 +1566,7 @@
     closeAgodaModal();
   }
 
+  // 樂觀更新：新增段考日期
   function addExamDate() {
     const examName = document.getElementById('examNameSelect').value;
 
@@ -1539,22 +1581,32 @@
       endDate: agodaEnd || agodaStart
     };
 
+    const oldExamDates = [...examDates];
     examDates.push(newExamObj);
 
     agodaStart = null;
     agodaEnd = null;
     document.getElementById('agodaDateDisplay').innerText = '📅 選擇段考日期';
 
-    syncExamDatesToCloud();
+    updateAllUI(); // 樂觀更新畫面
+    syncExamDatesToCloud(() => {
+      examDates = oldExamDates;
+      updateAllUI();
+    });
   }
 
+  // 樂觀更新：刪除段考日期
   function removeExamDateByIndex(index) {
+    const oldExamDates = [...examDates];
     examDates.splice(index, 1);
-    syncExamDatesToCloud();
+    updateAllUI(); // 樂觀更新畫面
+    syncExamDatesToCloud(() => {
+      examDates = oldExamDates;
+      updateAllUI();
+    });
   }
 
-  function syncExamDatesToCloud() {
-    showLoading(true);
+  function syncExamDatesToCloud(onError) {
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
       body: JSON.stringify({
@@ -1563,13 +1615,9 @@
       })
     })
     .then(res => res.json())
-    .then(() => {
-      showLoading(false);
-      updateAllUI();
-    })
-    .catch(() => {
-      showLoading(false);
-      updateAllUI();
+    .catch(err => {
+      alert("同步段考資料失敗，已恢復先前設定！");
+      if (onError) onError();
     });
   }
 
@@ -1613,8 +1661,7 @@
     return null;
   }
 
-  function syncListsToCloud() {
-    showLoading(true);
+  function syncListsToCloud(onError) {
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
       body: JSON.stringify({
@@ -1624,16 +1671,13 @@
       })
     })
     .then(res => res.json())
-    .then(() => {
-      showLoading(false);
-      updateAllUI();
-    })
-    .catch(() => {
-      showLoading(false);
-      updateAllUI();
+    .catch(err => {
+      alert("同步名單資料失敗，已恢復先前設定！");
+      if (onError) onError();
     });
   }
 
+  // 樂觀更新：刪除預約
   function confirmDeleteAppointment(id, event, infoStr) {
     if (event) event.stopPropagation();
     if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
@@ -1642,7 +1686,7 @@
 
       const backupEvent = rawAppointments[deletedIndex];
       rawAppointments.splice(deletedIndex, 1);
-      renderCalendars();
+      renderCalendars(); // 樂觀更新畫面
 
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
@@ -1752,25 +1796,21 @@
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const examInfo = getExamInfoForDate(dateStr);
 
-        // 判斷是否為星期六(6)或星期日(0)
         const currentDayObj = new Date(year, month, day);
         const dayOfWeek = currentDayObj.getDay();
         const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
 
-        // 優先套用段考日灰底，若非段考日但為六日則套用六日灰底
         if (examInfo) {
           dayCell.classList.add('exam-day');
         } else if (isWeekend) {
           dayCell.classList.add('weekend');
         }
 
-        // 先插入日期數字
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
         dayNumber.innerText = day;
         dayCell.appendChild(dayNumber);
 
-        // 再插入段考標籤
         if (examInfo) {
           const examTag = document.createElement('div');
           examTag.className = 'exam-text-label';
@@ -1875,6 +1915,7 @@
     document.getElementById('eventModal').style.display = 'none';
   }
 
+  // 樂觀更新：新增預約
   function saveEvent() {
     const teacher = document.getElementById('teacherSelect').value;
     const period = document.getElementById('periodSelect').value;
@@ -1935,7 +1976,7 @@
     closeModal();
 
     rawAppointments.push(eventData);
-    renderCalendars();
+    renderCalendars(); // 樂觀更新畫面
 
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
