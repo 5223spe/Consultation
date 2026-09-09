@@ -1604,8 +1604,8 @@
     }
 
     if (matchedNames.length > 0) {
-  return { name: matchedNames.join('<br>') };
-}
+      return { name: matchedNames.join('<br>') };
+    }
     return null;
   }
 
@@ -1748,22 +1748,17 @@
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const examInfo = getExamInfoForDate(dateStr);
 
-        if (examInfo) {
-  const examTag = document.createElement('div');
-  examTag.className = 'exam-text-label';
-  examTag.innerHTML = examInfo.name;
-  dayCell.appendChild(examTag);
-}
-
+        // 先插入日期數字
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
         dayNumber.innerText = day;
         dayCell.appendChild(dayNumber);
 
+        // 再插入段考標籤（使用 innerHTML 解析 <br>）
         if (examInfo) {
           const examTag = document.createElement('div');
           examTag.className = 'exam-text-label';
-          examTag.innerText = examInfo.name;
+          examTag.innerHTML = examInfo.name;
           dayCell.appendChild(examTag);
         }
 
