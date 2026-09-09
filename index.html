@@ -752,11 +752,11 @@
       <div class="tag-list" id="studentTagList"></div>
     </div>
 
-    <!-- 新增段考日期管理 -->
+    <!-- 段考日期管理 (可輸入單日或區間，例如: 2026-10-15~2026-10-17) -->
     <div class="manage-card">
       <h3>段考日期管理</h3>
       <div class="input-group">
-        <input type="date" id="examDateInput">
+        <input type="text" id="examDateInput" placeholder="2026-10-15~2026-10-17 或日期">
         <button class="btn-primary" onclick="addExamDate()">新增</button>
       </div>
       <div class="tag-list" id="examTagList"></div>
@@ -878,7 +878,7 @@
         if (data) {
           teachers = data.lists ? (data.lists.teachers || []) : [];
           students = data.lists ? (data.lists.students || []) : [];
-          examDates = data.lists ? (data.lists.examDates || []) : [];
+          examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
           rawAppointments = data.appointments || [];
           updateAllUI();
         }
@@ -926,7 +926,7 @@
         showLoading(false);
         teachers = data.lists ? (data.lists.teachers || []) : [];
         students = data.lists ? (data.lists.students || []) : [];
-        examDates = data.lists ? (data.lists.examDates || []) : [];
+        examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
         rawAppointments = data.appointments || [];
         updateAllUI();
       })
@@ -1237,17 +1237,55 @@
 
   function addExamDate() {
     const input = document.getElementById('examDateInput');
-    const dateVal = input.value;
+    const dateVal = input.value.trim();
     if (dateVal && !examDates.includes(dateVal)) {
       examDates.push(dateVal);
       input.value = '';
-      syncListsToCloud();
+      syncExamDatesToCloud();
     }
   }
 
   function removeExamDateByValue(dateVal) {
     examDates = examDates.filter(d => d !== dateVal);
-    syncListsToCloud();
+    syncExamDatesToCloud();
+  }
+
+  function syncExamDatesToCloud() {
+    showLoading(true);
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'saveExamDates',
+        examDates: examDates
+      })
+    })
+    .then(res => res.json())
+    .then(() => {
+      showLoading(false);
+      updateAllUI();
+    })
+    .catch(() => {
+      showLoading(false);
+      updateAllUI();
+    });
+  }
+
+  function isExamDate(targetDateStr) {
+    const target = new Date(targetDateStr);
+    target.setHours(0, 0, 0, 0);
+
+    return examDates.some(rangeStr => {
+      if (rangeStr.includes('~')) {
+        const [startStr, endStr] = rangeStr.split('~');
+        const start = new Date(startStr);
+        const end = new Date(endStr);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        return target >= start && target <= end;
+      } else {
+        return rangeStr === targetDateStr;
+      }
+    });
   }
 
   function syncListsToCloud() {
@@ -1257,8 +1295,7 @@
       body: JSON.stringify({
         action: 'saveLists',
         teachers: teachers,
-        students: students,
-        examDates: examDates
+        students: students
       })
     })
     .then(res => res.json())
@@ -1388,7 +1425,7 @@
         dayCell.className = 'day-cell';
         
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const isExamDay = examDates.includes(dateStr);
+        const isExamDay = isExamDate(dateStr);
 
         if (isExamDay) {
           dayCell.classList.add('exam-day');
