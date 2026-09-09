@@ -429,34 +429,37 @@
     }
 
     /* 恢復標籤清單的彈性水平排列與氣泡樣式 */
-    .tag-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      max-height: none;
-      overflow-y: visible;
-    }
+   .tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px; /* 縮小標籤之間的間隔 */
+  max-height: none;
+  overflow-y: visible;
+}
 
     /* 恢復膠囊形狀 short tag 樣式 */
     .manage-tag {
-      padding: 3px 10px;
-      border-radius: 16px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border: 1px solid transparent;
-      width: auto; /* 讓寬度隨文字長度縮放 */
-      word-break: normal;
-    }
+  padding: 2px 6px;      /* 縮小上下左右內襯 */
+  border-radius: 12px;   /* 圓角稍微調小更精緻 */
+  font-size: 0.75rem;    /* 字級改為 12px */
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid transparent;
+  width: calc(33.33% - 3px); /* 強制計算每行三個的精準寬度 */
+  box-sizing: border-box;
+  justify-content: center;
+  word-break: keep-all;  /* 防止名字被斷行 */
+  white-space: nowrap;
+}
 
     .manage-tag .delete-btn {
-      cursor: pointer;
-      font-weight: bold;
-      opacity: 0.6;
-      margin-left: 2px;
-    }
+  cursor: pointer;
+  font-weight: bold;
+  opacity: 0.6;
+  margin-left: 1px;
+}
 
     .manage-tag .delete-btn:hover {
       opacity: 1;
