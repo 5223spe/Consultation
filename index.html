@@ -766,6 +766,20 @@
       background-color: #e0f2fe !important;
       color: #0369a1;
     }
+
+    .date-range-btn {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+    
   </style>
 </head>
 <body>
@@ -932,7 +946,7 @@
 </div>
 
 <script>
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwnTo5lxe2-L969pt0dO9Z-zLrfF1hySt0aN7Jv8hBQlWXRrg7QDYkf1uO1H8gfb7WF/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyyXzF9_OXOUrD3-iYuzrI8EqdVsluaYHCxY3Joa0w-2cGN2-VZdVcHWs0IQZbm3Iyd/exec";
 
   let teachers = [];
   let students = [];
@@ -1354,18 +1368,16 @@
     eList.innerHTML = examDates.map((item, index) => {
       let displayText = "";
       if (typeof item === 'object' && item !== null) {
-        const nameStr = item.name || "段考";
-        const rangeStr = (item.startDate === item.endDate || !item.endDate) ? item.startDate : `${item.startDate}~${item.endDate}`;
-        displayText = `${nameStr}: ${rangeStr}`;
+        const rangeStr = (!item.endDate || item.startDate === item.endDate) ? item.startDate : `${item.startDate}~${item.endDate}`;
+        displayText = `${item.name || '段考'}: ${rangeStr}`;
       } else {
-        displayText = item;
+        displayText = String(item);
       }
       return `<div class="manage-tag" style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
                 ${displayText} <span class="delete-btn" onclick="removeExamDateByIndex(${index})">&times;</span>
               </div>`;
     }).join('');
   }
-
   function addTeacher() {
     const input = document.getElementById('newTeacherInput');
     const name = input.value.trim();
