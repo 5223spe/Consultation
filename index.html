@@ -317,6 +317,29 @@
       cursor: default;
     }
 
+    /* 段考日灰化樣式 */
+    .day-cell.exam-day {
+      background-color: #e2e8f0 !important;
+      color: #64748b;
+      cursor: not-allowed !important;
+    }
+
+    .day-cell.exam-day:hover {
+      background-color: #e2e8f0 !important;
+    }
+
+    .exam-label {
+      font-size: 0.72rem;
+      font-weight: bold;
+      color: #dc2626;
+      background-color: #fee2e2;
+      border: 1px solid #fca5a5;
+      border-radius: 4px;
+      text-align: center;
+      padding: 2px 0;
+      margin-bottom: 4px;
+    }
+
     .day-number {
       font-weight: bold;
       font-size: 0.8rem;
@@ -729,6 +752,16 @@
       <div class="tag-list" id="studentTagList"></div>
     </div>
 
+    <!-- 新增段考日期管理 -->
+    <div class="manage-card">
+      <h3>段考日期管理</h3>
+      <div class="input-group">
+        <input type="date" id="examDateInput">
+        <button class="btn-primary" onclick="addExamDate()">新增</button>
+      </div>
+      <div class="tag-list" id="examTagList"></div>
+    </div>
+
     <div class="action-btn-group">
        <button class="action-btn btn-semester" onclick="loadSemesterCalendar(1)">📅 載入上學期月曆</button>
        <button class="action-btn btn-semester" onclick="loadSemesterCalendar(2)">📅 載入下學期月曆</button>
@@ -764,11 +797,11 @@
 </div>
 
 <script>
-  // ⚠️ 請在此處更換為正確的 Google Apps Script Web App URL
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrN32fp67oOdDQ5XUx5oZngCX4bEUOFKdl1xSv6j2gtzn-oJ51X_OzFBHdLp95rxj3/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwnTo5lxe2-L969pt0dO9Z-zLrfF1hySt0aN7Jv8hBQlWXRrg7QDYkf1uO1H8gfb7WF/exec";
 
   let teachers = [];
   let students = [];
+  let examDates = [];
   let rawAppointments = []; 
   const periods = ["第一節", "第二節", "第三節", "第四節", "午休", "第五節", "第六節", "第七節", "第八節"];
 
@@ -845,6 +878,7 @@
         if (data) {
           teachers = data.lists ? (data.lists.teachers || []) : [];
           students = data.lists ? (data.lists.students || []) : [];
+          examDates = data.lists ? (data.lists.examDates || []) : [];
           rawAppointments = data.appointments || [];
           updateAllUI();
         }
@@ -892,6 +926,7 @@
         showLoading(false);
         teachers = data.lists ? (data.lists.teachers || []) : [];
         students = data.lists ? (data.lists.students || []) : [];
+        examDates = data.lists ? (data.lists.examDates || []) : [];
         rawAppointments = data.appointments || [];
         updateAllUI();
       })
@@ -899,7 +934,7 @@
         showLoading(false);
         alert("資料載入失敗，已切換至本機暫存模式。請確認 API 網址與權限！");
         console.error(err);
-        updateAllUI(); // 即使失敗仍渲染基本 UI 介面
+        updateAllUI();
       });
   }
 
@@ -1147,6 +1182,7 @@
   function renderManagementTags() {
     const tList = document.getElementById('teacherTagList');
     const sList = document.getElementById('studentTagList');
+    const eList = document.getElementById('examTagList');
 
     tList.innerHTML = teachers.map((t) => {
       const colors = getColorForEntity(t, 'teacher');
@@ -1159,6 +1195,12 @@
       const colors = getColorForEntity(s, 'student');
       return `<div class="manage-tag" style="background:${colors.bg}; border-color:${colors.border}; color:${colors.text};">
                 ${s} <span class="delete-btn" onclick="removeStudentByName('${s}')">&times;</span>
+              </div>`;
+    }).join('');
+
+    eList.innerHTML = examDates.map((d) => {
+      return `<div class="manage-tag" style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
+                ${d} <span class="delete-btn" onclick="removeExamDateByValue('${d}')">&times;</span>
               </div>`;
     }).join('');
   }
@@ -1193,6 +1235,21 @@
     syncListsToCloud();
   }
 
+  function addExamDate() {
+    const input = document.getElementById('examDateInput');
+    const dateVal = input.value;
+    if (dateVal && !examDates.includes(dateVal)) {
+      examDates.push(dateVal);
+      input.value = '';
+      syncListsToCloud();
+    }
+  }
+
+  function removeExamDateByValue(dateVal) {
+    examDates = examDates.filter(d => d !== dateVal);
+    syncListsToCloud();
+  }
+
   function syncListsToCloud() {
     showLoading(true);
     fetch(GAS_WEB_APP_URL, {
@@ -1200,7 +1257,8 @@
       body: JSON.stringify({
         action: 'saveLists',
         teachers: teachers,
-        students: students
+        students: students,
+        examDates: examDates
       })
     })
     .then(res => res.json())
@@ -1330,11 +1388,23 @@
         dayCell.className = 'day-cell';
         
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        
+        const isExamDay = examDates.includes(dateStr);
+
+        if (isExamDay) {
+          dayCell.classList.add('exam-day');
+        }
+
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
         dayNumber.innerText = day;
         dayCell.appendChild(dayNumber);
+
+        if (isExamDay) {
+          const examTag = document.createElement('div');
+          examTag.className = 'exam-label';
+          examTag.innerText = '📝 段考日';
+          dayCell.appendChild(examTag);
+        }
 
         const eventContainer = document.createElement('div');
 
@@ -1378,7 +1448,7 @@
             const shortPeriod = getShortPeriod(evt.period);
             tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>`;
             
-            if (!isFaded) {
+            if (!isFaded && !isExamDay) {
               tag.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1386,7 +1456,7 @@
               });
             }
           } else {
-            const deleteBtnHtml = isFaded 
+            const deleteBtnHtml = (isFaded || isExamDay) 
               ? '' 
               : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
               
@@ -1397,7 +1467,15 @@
         });
 
         dayCell.appendChild(eventContainer);
-        dayCell.onclick = () => openModal(dateStr);
+
+        dayCell.onclick = () => {
+          if (isExamDay) {
+            alert(`⚠️ ${dateStr} 設定為「段考日」，無法登記晤談預約。`);
+            return;
+          }
+          openModal(dateStr);
+        };
+
         grid.appendChild(dayCell);
       }
 
