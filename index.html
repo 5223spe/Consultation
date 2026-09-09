@@ -376,11 +376,29 @@
       margin-bottom: 12px;
     }
 
+    .manage-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
     .manage-card h3 {
       margin-top: 0;
       margin-bottom: 8px;
       font-size: 0.88rem;
       color: #0f766e;
+    }
+
+    .collapse-btn {
+      background: none;
+      border: none;
+      color: #0f766e;
+      font-weight: bold;
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 0 4px;
     }
 
     .input-group {
@@ -679,6 +697,75 @@
       color: #475569;
       font-weight: bold;
     }
+
+    /* Agoda 風格日期選擇器 CSS */
+    .agoda-picker-trigger {
+      width: 100%;
+      padding: 8px 10px;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: #334155;
+      text-align: left;
+      cursor: pointer;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .agoda-picker-trigger:hover {
+      border-color: #0f766e;
+    }
+    .agoda-cal-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .agoda-cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      color: #0f766e;
+      font-size: 0.95rem;
+    }
+    .agoda-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      text-align: center;
+    }
+    .agoda-day-head {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #64748b;
+      padding: 4px 0;
+    }
+    .agoda-day-cell {
+      padding: 8px 0;
+      font-size: 0.82rem;
+      cursor: pointer;
+      border-radius: 4px;
+      user-select: none;
+    }
+    .agoda-day-cell:hover:not(.disabled) {
+      background-color: #ccfbf1;
+    }
+    .agoda-day-cell.disabled {
+      color: #cbd5e1;
+      cursor: not-allowed;
+    }
+    .agoda-day-cell.selected-start, .agoda-day-cell.selected-end {
+      background-color: #0f766e !important;
+      color: white !important;
+      font-weight: bold;
+      border-radius: 4px;
+    }
+    .agoda-day-cell.in-range {
+      background-color: #e0f2fe !important;
+      color: #0369a1;
+    }
   </style>
 </head>
 <body>
@@ -759,25 +846,30 @@
       <div class="tag-list" id="studentTagList"></div>
     </div>
 
-    <!-- 段考日期管理 (支援類別選擇與起止日期選擇器) -->
+    <!-- 段考日期管理 (向下折疊 + Agoda式區間選擇) -->
     <div class="manage-card">
-      <h3>段考日期管理</h3>
-      <div class="input-group">
-        <select id="examNameSelect">
-          <option value="第一次段考">第一次段考</option>
-          <option value="第二次段考">第二次段考</option>
-          <option value="高三期末考">高三期末考</option>
-          <option value="高一二期末考">高一二期末考</option>
-        </select>
+      <div class="manage-card-header" onclick="toggleExamSection()">
+        <h3>段考日期管理</h3>
+        <button class="collapse-btn" id="btnToggleExamSec">▼</button>
       </div>
-      <div class="date-range-container">
-        <label>開始日期：</label>
-        <input type="date" id="examStartDateInput" class="select-input" style="margin-bottom:0;">
-        <label>結束日期（單日可不填）：</label>
-        <input type="date" id="examEndDateInput" class="select-input" style="margin-bottom:0;">
+      <div id="examManageContent" style="display: none; margin-top: 8px;">
+        <div class="input-group">
+          <select id="examNameSelect">
+            <option value="第一次段考">第一次段考</option>
+            <option value="第二次段考">第二次段考</option>
+            <option value="高三期末考">高三期末考</option>
+            <option value="高一二期末考">高一二期末考</option>
+          </select>
+        </div>
+        
+        <div class="agoda-picker-trigger" onclick="openAgodaDatePicker()">
+          <span id="agodaDateDisplay">📅 點擊選擇段考日期區間</span>
+          <span style="font-size: 0.75rem; color: #0f766e;">選擇</span>
+        </div>
+
+        <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="addExamDate()">新增段考</button>
       </div>
-      <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="addExamDate()">新增段考</button>
-      <div class="tag-list" id="examTagList"></div>
+      <div class="tag-list" id="examTagList" style="margin-top: 6px;"></div>
     </div>
 
     <div class="action-btn-group">
@@ -814,6 +906,31 @@
   </div>
 </div>
 
+<!-- Agoda 式日期區間選擇 Modal -->
+<div class="modal" id="agodaDateModal">
+  <div class="modal-content" style="max-width: 350px;">
+    <div class="modal-header" style="font-size: 1rem;">選擇段考日期區間 (點選開始與結束)</div>
+    
+    <div class="agoda-cal-container">
+      <div class="agoda-cal-header">
+        <button onclick="changeAgodaMonth(-1)">&lt;</button>
+        <span id="agodaMonthTitle">2026年 9月</span>
+        <button onclick="changeAgodaMonth(1)">&gt;</button>
+      </div>
+      <div class="agoda-cal-grid" id="agodaCalGrid"></div>
+    </div>
+
+    <div style="font-size: 0.8rem; color: #475569; margin-top: 10px; text-align: center;" id="agodaStatusText">
+      請選擇「開始日期」
+    </div>
+
+    <div class="btn-group">
+      <button class="btn-secondary" onclick="closeAgodaModal()">取消</button>
+      <button class="btn-primary" onclick="confirmAgodaDate()">確定選擇</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwnTo5lxe2-L969pt0dO9Z-zLrfF1hySt0aN7Jv8hBQlWXRrg7QDYkf1uO1H8gfb7WF/exec";
 
@@ -840,6 +957,12 @@
   let currentSemester = 0;
   let pollTimer = null;
 
+  // Agoda 式選擇器變數
+  let agodaStart = null;
+  let agodaEnd = null;
+  let agodaViewYear = new Date().getFullYear();
+  let agodaViewMonth = new Date().getMonth();
+
   const basePalette = [
     { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
     { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' },
@@ -852,6 +975,18 @@
     { bg: '#e2e8f0', border: '#cbd5e1', text: '#334155' },
     { bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46' }
   ];
+
+  function toggleExamSection() {
+    const content = document.getElementById('examManageContent');
+    const btn = document.getElementById('btnToggleExamSec');
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      btn.innerText = '▲';
+    } else {
+      content.style.display = 'none';
+      btn.innerText = '▼';
+    }
+  }
 
   function toggleDesktopSidebar(side) {
     if (side === 'left') {
@@ -1218,9 +1353,10 @@
 
     eList.innerHTML = examDates.map((item, index) => {
       let displayText = "";
-      if (typeof item === 'object') {
-        const rangeStr = item.startDate === item.endDate || !item.endDate ? item.startDate : `${item.startDate}~${item.endDate}`;
-        displayText = `${item.name}: ${rangeStr}`;
+      if (typeof item === 'object' && item !== null) {
+        const nameStr = item.name || "段考";
+        const rangeStr = (item.startDate === item.endDate || !item.endDate) ? item.startDate : `${item.startDate}~${item.endDate}`;
+        displayText = `${nameStr}: ${rangeStr}`;
       } else {
         displayText = item;
       }
@@ -1260,35 +1396,125 @@
     syncListsToCloud();
   }
 
-  function addExamDate() {
-    const examName = document.getElementById('examNameSelect').value;
-    const startDate = document.getElementById('examStartDateInput').value;
-    let endDate = document.getElementById('examEndDateInput').value;
+  /* Agoda 日期選擇器相關控制 */
+  function openAgodaDatePicker() {
+    document.getElementById('agodaDateModal').style.display = 'flex';
+    renderAgodaCalendar();
+  }
 
-    if (!startDate) {
-      alert("請選擇段考開始日期！");
+  function closeAgodaModal() {
+    document.getElementById('agodaDateModal').style.display = 'none';
+  }
+
+  function changeAgodaMonth(offset) {
+    agodaViewMonth += offset;
+    if (agodaViewMonth > 11) {
+      agodaViewMonth = 0;
+      agodaViewYear++;
+    } else if (agodaViewMonth < 0) {
+      agodaViewMonth = 11;
+      agodaViewYear--;
+    }
+    renderAgodaCalendar();
+  }
+
+  function renderAgodaCalendar() {
+    document.getElementById('agodaMonthTitle').innerText = `${agodaViewYear}年 ${agodaViewMonth + 1}月`;
+    const grid = document.getElementById('agodaCalGrid');
+    grid.innerHTML = '';
+
+    const heads = ['日', '一', '二', '三', '四', '五', '六'];
+    heads.forEach(h => {
+      const div = document.createElement('div');
+      div.className = 'agoda-day-head';
+      div.innerText = h;
+      grid.appendChild(div);
+    });
+
+    const firstDay = new Date(agodaViewYear, agodaViewMonth, 1).getDay();
+    const daysInMonth = new Date(agodaViewYear, agodaViewMonth + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      const empty = document.createElement('div');
+      grid.appendChild(empty);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cell = document.createElement('div');
+      cell.className = 'agoda-day-cell';
+      cell.innerText = d;
+
+      const dateStr = `${agodaViewYear}-${String(agodaViewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+      if (agodaStart === dateStr) {
+        cell.classList.add('selected-start');
+      } else if (agodaEnd === dateStr) {
+        cell.classList.add('selected-end');
+      } else if (agodaStart && agodaEnd && dateStr > agodaStart && dateStr < agodaEnd) {
+        cell.classList.add('in-range');
+      }
+
+      cell.onclick = () => selectAgodaDate(dateStr);
+      grid.appendChild(cell);
+    }
+
+    const statusText = document.getElementById('agodaStatusText');
+    if (!agodaStart) {
+      statusText.innerText = '請選擇「開始日期」';
+    } else if (!agodaEnd) {
+      statusText.innerText = `已選擇開始：${agodaStart}，請選擇「結束日期」（單日可再次點擊同一天）`;
+    } else {
+      statusText.innerText = `已選擇區間：${agodaStart} ~ ${agodaEnd}`;
+    }
+  }
+
+  function selectAgodaDate(dateStr) {
+    if (!agodaStart || (agodaStart && agodaEnd)) {
+      agodaStart = dateStr;
+      agodaEnd = null;
+    } else if (agodaStart && !agodaEnd) {
+      if (dateStr < agodaStart) {
+        agodaStart = dateStr;
+        agodaEnd = null;
+      } else {
+        agodaEnd = dateStr;
+      }
+    }
+    renderAgodaCalendar();
+  }
+
+  function confirmAgodaDate() {
+    if (!agodaStart) {
+      alert("請至少選擇一個開始日期！");
       return;
     }
-
-    if (!endDate) {
-      endDate = startDate;
+    if (!agodaEnd) {
+      agodaEnd = agodaStart;
     }
+    const display = (agodaStart === agodaEnd) ? agodaStart : `${agodaStart} ~ ${agodaEnd}`;
+    document.getElementById('agodaDateDisplay').innerText = `📅 ${display}`;
+    closeAgodaModal();
+  }
 
-    if (new Date(startDate) > new Date(endDate)) {
-      alert("開始日期不能晚於結束日期！");
+  function addExamDate() {
+    const examName = document.getElementById('examNameSelect').value;
+
+    if (!agodaStart) {
+      alert("請點擊選擇段考日期區間！");
       return;
     }
 
     const newExamObj = {
       name: examName,
-      startDate: startDate,
-      endDate: endDate
+      startDate: agodaStart,
+      endDate: agodaEnd || agodaStart
     };
 
     examDates.push(newExamObj);
 
-    document.getElementById('examStartDateInput').value = '';
-    document.getElementById('examEndDateInput').value = '';
+    agodaStart = null;
+    agodaEnd = null;
+    document.getElementById('agodaDateDisplay').innerText = '📅 點擊選擇段考日期區間';
 
     syncExamDatesToCloud();
   }
@@ -1323,7 +1549,7 @@
     target.setHours(0, 0, 0, 0);
 
     for (const item of examDates) {
-      if (typeof item === 'object') {
+      if (typeof item === 'object' && item !== null) {
         const start = new Date(item.startDate);
         const end = new Date(item.endDate || item.startDate);
         start.setHours(0, 0, 0, 0);
