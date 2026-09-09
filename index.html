@@ -111,7 +111,7 @@
     }
 
     .sidebar-right {
-      width: 220px;
+      width: 240px;
       flex-shrink: 0;
       background: #fff;
       border: 1px solid var(--border-color);
@@ -317,26 +317,20 @@
       cursor: default;
     }
 
-    /* 段考日灰化樣式 */
+    /* 段考日灰化樣式 (無紅色區塊，僅變灰並文字顯示) */
     .day-cell.exam-day {
       background-color: #e2e8f0 !important;
-      color: #64748b;
-      cursor: not-allowed !important;
+      color: #475569;
     }
 
     .day-cell.exam-day:hover {
-      background-color: #e2e8f0 !important;
+      background-color: #cbd5e1 !important;
     }
 
-    .exam-label {
+    .exam-text-label {
       font-size: 0.72rem;
       font-weight: bold;
-      color: #dc2626;
-      background-color: #fee2e2;
-      border: 1px solid #fca5a5;
-      border-radius: 4px;
-      text-align: center;
-      padding: 2px 0;
+      color: #475569;
       margin-bottom: 4px;
     }
 
@@ -394,10 +388,10 @@
       gap: 4px;
       align-items: center;
       width: 100%;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
-    .input-group input {
+    .input-group input, .input-group select {
       flex: 1;
       min-width: 0;
       padding: 5px 6px;
@@ -672,6 +666,19 @@
       overflow: visible;
       padding-right: 4px;
     }
+
+    .date-range-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .date-range-container label {
+      font-size: 0.75rem;
+      color: #475569;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -752,13 +759,24 @@
       <div class="tag-list" id="studentTagList"></div>
     </div>
 
-    <!-- 段考日期管理 (可輸入單日或區間，例如: 2026-10-15~2026-10-17) -->
+    <!-- 段考日期管理 (支援類別選擇與起止日期選擇器) -->
     <div class="manage-card">
       <h3>段考日期管理</h3>
       <div class="input-group">
-        <input type="text" id="examDateInput" placeholder="2026-10-15~2026-10-17 或日期">
-        <button class="btn-primary" onclick="addExamDate()">新增</button>
+        <select id="examNameSelect">
+          <option value="第一次段考">第一次段考</option>
+          <option value="第二次段考">第二次段考</option>
+          <option value="高三期末考">高三期末考</option>
+          <option value="高一二期末考">高一二期末考</option>
+        </select>
       </div>
+      <div class="date-range-container">
+        <label>開始日期：</label>
+        <input type="date" id="examStartDateInput" class="select-input" style="margin-bottom:0;">
+        <label>結束日期（單日可不填）：</label>
+        <input type="date" id="examEndDateInput" class="select-input" style="margin-bottom:0;">
+      </div>
+      <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="addExamDate()">新增段考</button>
       <div class="tag-list" id="examTagList"></div>
     </div>
 
@@ -801,7 +819,7 @@
 
   let teachers = [];
   let students = [];
-  let examDates = [];
+  let examDates = []; // 支援物件陣列 [{name, startDate, endDate}] 或舊有的字串
   let rawAppointments = []; 
   const periods = ["第一節", "第二節", "第三節", "第四節", "午休", "第五節", "第六節", "第七節", "第八節"];
 
@@ -1198,9 +1216,16 @@
               </div>`;
     }).join('');
 
-    eList.innerHTML = examDates.map((d) => {
+    eList.innerHTML = examDates.map((item, index) => {
+      let displayText = "";
+      if (typeof item === 'object') {
+        const rangeStr = item.startDate === item.endDate || !item.endDate ? item.startDate : `${item.startDate}~${item.endDate}`;
+        displayText = `${item.name}: ${rangeStr}`;
+      } else {
+        displayText = item;
+      }
       return `<div class="manage-tag" style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
-                ${d} <span class="delete-btn" onclick="removeExamDateByValue('${d}')">&times;</span>
+                ${displayText} <span class="delete-btn" onclick="removeExamDateByIndex(${index})">&times;</span>
               </div>`;
     }).join('');
   }
@@ -1236,17 +1261,40 @@
   }
 
   function addExamDate() {
-    const input = document.getElementById('examDateInput');
-    const dateVal = input.value.trim();
-    if (dateVal && !examDates.includes(dateVal)) {
-      examDates.push(dateVal);
-      input.value = '';
-      syncExamDatesToCloud();
+    const examName = document.getElementById('examNameSelect').value;
+    const startDate = document.getElementById('examStartDateInput').value;
+    let endDate = document.getElementById('examEndDateInput').value;
+
+    if (!startDate) {
+      alert("請選擇段考開始日期！");
+      return;
     }
+
+    if (!endDate) {
+      endDate = startDate;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      alert("開始日期不能晚於結束日期！");
+      return;
+    }
+
+    const newExamObj = {
+      name: examName,
+      startDate: startDate,
+      endDate: endDate
+    };
+
+    examDates.push(newExamObj);
+
+    document.getElementById('examStartDateInput').value = '';
+    document.getElementById('examEndDateInput').value = '';
+
+    syncExamDatesToCloud();
   }
 
-  function removeExamDateByValue(dateVal) {
-    examDates = examDates.filter(d => d !== dateVal);
+  function removeExamDateByIndex(index) {
+    examDates.splice(index, 1);
     syncExamDatesToCloud();
   }
 
@@ -1270,22 +1318,36 @@
     });
   }
 
-  function isExamDate(targetDateStr) {
+  function getExamInfoForDate(targetDateStr) {
     const target = new Date(targetDateStr);
     target.setHours(0, 0, 0, 0);
 
-    return examDates.some(rangeStr => {
-      if (rangeStr.includes('~')) {
-        const [startStr, endStr] = rangeStr.split('~');
-        const start = new Date(startStr);
-        const end = new Date(endStr);
+    for (const item of examDates) {
+      if (typeof item === 'object') {
+        const start = new Date(item.startDate);
+        const end = new Date(item.endDate || item.startDate);
         start.setHours(0, 0, 0, 0);
         end.setHours(0, 0, 0, 0);
-        return target >= start && target <= end;
-      } else {
-        return rangeStr === targetDateStr;
+
+        if (target >= start && target <= end) {
+          return item;
+        }
+      } else if (typeof item === 'string') {
+        if (item.includes('~')) {
+          const [startStr, endStr] = item.split('~');
+          const start = new Date(startStr);
+          const end = new Date(endStr);
+          start.setHours(0, 0, 0, 0);
+          end.setHours(0, 0, 0, 0);
+          if (target >= start && target <= end) {
+            return { name: "段考", startDate: startStr, endDate: endStr };
+          }
+        } else if (item === targetDateStr) {
+          return { name: "段考", startDate: item, endDate: item };
+        }
       }
-    });
+    }
+    return null;
   }
 
   function syncListsToCloud() {
@@ -1425,9 +1487,9 @@
         dayCell.className = 'day-cell';
         
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const isExamDay = isExamDate(dateStr);
+        const examInfo = getExamInfoForDate(dateStr);
 
-        if (isExamDay) {
+        if (examInfo) {
           dayCell.classList.add('exam-day');
         }
 
@@ -1436,10 +1498,10 @@
         dayNumber.innerText = day;
         dayCell.appendChild(dayNumber);
 
-        if (isExamDay) {
+        if (examInfo) {
           const examTag = document.createElement('div');
-          examTag.className = 'exam-label';
-          examTag.innerText = '📝 段考日';
+          examTag.className = 'exam-text-label';
+          examTag.innerText = examInfo.name;
           dayCell.appendChild(examTag);
         }
 
@@ -1485,7 +1547,7 @@
             const shortPeriod = getShortPeriod(evt.period);
             tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>`;
             
-            if (!isFaded && !isExamDay) {
+            if (!isFaded) {
               tag.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1493,7 +1555,7 @@
               });
             }
           } else {
-            const deleteBtnHtml = (isFaded || isExamDay) 
+            const deleteBtnHtml = isFaded 
               ? '' 
               : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
               
@@ -1506,9 +1568,9 @@
         dayCell.appendChild(eventContainer);
 
         dayCell.onclick = () => {
-          if (isExamDay) {
-            alert(`⚠️ ${dateStr} 設定為「段考日」，無法登記晤談預約。`);
-            return;
+          if (examInfo) {
+            const confirmRegister = confirm(`⚠️ 該日期為「${examInfo.name}」，確定要登記晤談預約嗎？`);
+            if (!confirmRegister) return;
           }
           openModal(dateStr);
         };
