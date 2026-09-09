@@ -1604,8 +1604,8 @@
     }
 
     if (matchedNames.length > 0) {
-      return { name: matchedNames.join('/') };
-    }
+  return { name: matchedNames.join('<br>') };
+}
     return null;
   }
 
@@ -1749,8 +1749,11 @@
         const examInfo = getExamInfoForDate(dateStr);
 
         if (examInfo) {
-          dayCell.classList.add('exam-day');
-        }
+  const examTag = document.createElement('div');
+  examTag.className = 'exam-text-label';
+  examTag.innerHTML = examInfo.name;
+  dayCell.appendChild(examTag);
+}
 
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
