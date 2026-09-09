@@ -111,19 +111,23 @@
     }
 
     .sidebar-right {
-      width: 240px;
-      flex-shrink: 0;
-      background: #fff;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      z-index: 100;
-      transition: all 0.3s ease;
-      overflow: hidden;
-      position: sticky;
-      top: 15px;
-    }
+  width: 240px;
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  z-index: 100;
+  transition: all 0.3s ease;
+  position: sticky;
+  top: 15px;
+  /* --- 新增獨立滾輪關鍵設定 --- */
+  max-height: calc(100vh - 30px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
 
     .sidebar-right.collapsed {
       width: 0;
@@ -435,15 +439,18 @@
     }
 
     .manage-tag {
-      padding: 3px 8px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      border: 1px solid transparent;
-    }
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border: 1px solid transparent;
+  width: 100%; /* 讓紅色框充滿寬度 */
+  word-break: break-all;
+}
 
     .manage-tag .delete-btn {
       cursor: pointer;
@@ -877,7 +884,7 @@
         </div>
         
         <div class="agoda-picker-trigger" onclick="openAgodaDatePicker()">
-          <span id="agodaDateDisplay">📅 點擊選擇段考日期區間</span>
+          <span id="agodaDateDisplay">📅 選擇段考日期</span>
           <span style="font-size: 0.75rem; color: #0f766e;">選擇</span>
         </div>
 
@@ -1365,16 +1372,25 @@
               </div>`;
     }).join('');
 
+    // --- 修改段考標籤換行顯示 ---
     eList.innerHTML = examDates.map((item, index) => {
-      let displayText = "";
+      let titleText = "";
+      let dateText = "";
+
       if (typeof item === 'object' && item !== null) {
-        const rangeStr = (!item.endDate || item.startDate === item.endDate) ? item.startDate : `${item.startDate}~${item.endDate}`;
-        displayText = `${item.name || '段考'}: ${rangeStr}`;
+        titleText = item.name || '段考';
+        dateText = (!item.endDate || item.startDate === item.endDate) ? item.startDate : `${item.startDate}~${item.endDate}`;
       } else {
-        displayText = String(item);
+        titleText = "段考";
+        dateText = String(item);
       }
+
       return `<div class="manage-tag" style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
-                ${displayText} <span class="delete-btn" onclick="removeExamDateByIndex(${index})">&times;</span>
+                <div>
+                  <strong>${titleText}：</strong><br>
+                  <span>${dateText}</span>
+                </div>
+                <span class="delete-btn" onclick="removeExamDateByIndex(${index})">&times;</span>
               </div>`;
     }).join('');
   }
