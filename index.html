@@ -1075,9 +1075,10 @@
       .catch(err => console.error("背景自動同步失敗：", err));
   }
 
+  // 修改：拉長輪詢時間至 30 秒以節省 API 配額
   function startPolling() {
     if (!pollTimer) {
-      pollTimer = setInterval(silentFetchData, 10000);
+      pollTimer = setInterval(silentFetchData, 30000);
     }
   }
 
@@ -1094,12 +1095,13 @@
     fetchCloudData();
     startPolling();
 
+    // 修改：切換頁面/分頁時的智慧輪詢控制
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        stopPolling();
+        stopPolling(); // 離開分頁時停止背景請求
       } else {
-        silentFetchData();
-        startPolling();
+        silentFetchData(); // 切回分頁時「立刻」發送請求更新至最新狀態
+        startPolling();    // 重啟輪詢
       }
     });
   };
@@ -2062,6 +2064,5 @@
     }
   }
 </script>
-
 </body>
 </html>
