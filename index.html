@@ -451,19 +451,19 @@
     .tag-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 6px;
       max-height: none;
       overflow-y: visible;
     }
 
     .manage-tag {
-      padding: 3px 8px;
-      border-radius: 12px;
-      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 4px;
       border: 1px solid transparent;
       width: auto;
       box-sizing: border-box;
@@ -475,7 +475,8 @@
       cursor: pointer;
       font-weight: bold;
       opacity: 0.6;
-      margin-left: 1px;
+      margin-left: 2px;
+      font-size: 0.85rem;
     }
 
     .manage-tag .delete-btn:hover {
@@ -833,6 +834,8 @@
       <option value="student">學生顏色</option>
     </select>
 
+    <div id="relatedTeachersBox" style="display: none;"></div>
+
     <div class="filter-tag-list" id="filterTagList"></div>
 
     <div id="calendarSyncContainer"></div>
@@ -984,16 +987,16 @@
   let agodaViewMonth = new Date().getMonth();
 
   const basePalette = [
-    { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
-    { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' },
-    { bg: '#dcfce7', border: '#89c493', text: '#166534' },
-    { bg: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8' },
-    { bg: '#fef3c7', border: '#fde047', text: '#854d0e' },
-    { bg: '#fce7f3', border: '#f472b6', text: '#9d174d' },
-    { bg: '#cff4fc', border: '#a5f3fc', text: '#155e75' },
-    { bg: '#ffedd5', border: '#fed7aa', text: '#9a3412' },
-    { bg: '#e2e8f0', border: '#cbd5e1', text: '#334155' },
-    { bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46' }
+    { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' }, // 藍色
+    { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' }, // 紅/粉紅
+    { bg: '#dcfce7', border: '#89c493', text: '#166534' }, // 綠色
+    { bg: '#f3e8ff', border: '#d8b4fe', text: '#6b21a8' }, // 紫色
+    { bg: '#fef3c7', border: '#fde047', text: '#854d0e' }, // 黃/橘色
+    { bg: '#fce7f3', border: '#f472b6', text: '#9d174d' }, // 桃粉色
+    { bg: '#cff4fc', border: '#a5f3fc', text: '#155e75' }, // 淺藍/青色
+    { bg: '#ffedd5', border: '#fed7aa', text: '#9a3412' }, // 橘色
+    { bg: '#e2e8f0', border: '#cbd5e1', text: '#334155' }, // 灰色
+    { bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46' }  // 薄荷綠
   ];
 
   function toggleExamSection() {
@@ -1075,10 +1078,9 @@
       .catch(err => console.error("背景自動同步失敗：", err));
   }
 
-  // 修改：拉長輪詢時間至 30 秒以節省 API 配額
   function startPolling() {
     if (!pollTimer) {
-      pollTimer = setInterval(silentFetchData, 30000);
+      pollTimer = setInterval(silentFetchData, 10000);
     }
   }
 
@@ -1095,13 +1097,12 @@
     fetchCloudData();
     startPolling();
 
-    // 修改：切換頁面/分頁時的智慧輪詢控制
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        stopPolling(); // 離開分頁時停止背景請求
+        stopPolling();
       } else {
-        silentFetchData(); // 切回分頁時「立刻」發送請求更新至最新狀態
-        startPolling();    // 重啟輪詢
+        silentFetchData();
+        startPolling();
       }
     });
   };
@@ -1130,8 +1131,8 @@
   }
 
   function getColorForEntity(name, type) {
-    if (name === '家臻') return basePalette[1];
-    if (name === '怡君') return basePalette[0];
+    if (name === '家臻') return basePalette[0];
+    if (name === '怡君') return basePalette[1];
 
     const list = (type === 'teacher') ? teachers : students;
     const index = list.indexOf(name);
@@ -1251,47 +1252,43 @@
   function renderFilterButtons() {
     const container = document.getElementById('filterTagList');
     const syncContainer = document.getElementById('calendarSyncContainer');
+    const relatedBox = document.getElementById('relatedTeachersBox');
+    
     const list = activeFilterType === 'teacher' ? teachers : students;
     const label = activeFilterType === 'teacher' ? '全部教師' : '全部學生';
-
     const isAllSelected = selectedFilterValues.length === 0;
 
-    let relatedBox = document.getElementById('relatedTeachersBox');
-    if (!relatedBox) {
-      relatedBox = document.createElement('div');
-      relatedBox.id = 'relatedTeachersBox';
-      container.parentNode.insertBefore(relatedBox, container);
-    }
+    if (relatedBox) {
+      if (activeFilterType === 'student' && selectedFilterValues.length > 0) {
+        let relHtml = `
+          <div class="related-teachers-box" style="margin-top: 0; margin-bottom: 8px; padding: 6px;">
+            <button class="multi-mode-btn" style="margin-bottom: 4px;" onclick="toggleRelatedTeachersMode()">
+              ${showRelatedTeachers ? '☑ 顯示相關教師' : '☐ 顯示相關教師'}
+            </button>
+        `;
 
-    if (activeFilterType === 'student' && selectedFilterValues.length > 0) {
-      let relHtml = `
-        <div class="related-teachers-box" style="margin-top: 0; margin-bottom: 8px; padding: 6px;">
-          <button class="multi-mode-btn" style="margin-bottom: 4px;" onclick="toggleRelatedTeachersMode()">
-            ${showRelatedTeachers ? '☑ 顯示相關教師' : '☐ 顯示相關教師'}
-          </button>
-      `;
+        if (showRelatedTeachers) {
+          relHtml += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
+          relHtml += `<div class="related-teachers-scroll" style="max-height: none; overflow: visible;">`;
+          teachers.forEach(t => {
+            const isChecked = selectedRelatedTeachers.includes(t);
+            relHtml += `
+              <label class="related-teacher-item">
+                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRelatedTeacherCheck('${t}')">
+                <span>${t}</span>
+              </label>
+            `;
+          });
+          relHtml += `</div>`;
+        }
 
-      if (showRelatedTeachers) {
-        relHtml += `<div style="font-size: 0.75rem; color: #475569; font-weight: bold; margin-bottom: 4px;">選擇要一併顯示的老師：</div>`;
-        relHtml += `<div class="related-teachers-scroll" style="max-height: none; overflow: visible;">`;
-        teachers.forEach(t => {
-          const isChecked = selectedRelatedTeachers.includes(t);
-          relHtml += `
-            <label class="related-teacher-item">
-              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRelatedTeacherCheck('${t}')">
-              <span>${t}</span>
-            </label>
-          `;
-        });
         relHtml += `</div>`;
+        relatedBox.innerHTML = relHtml;
+        relatedBox.style.display = 'block';
+      } else {
+        relatedBox.innerHTML = '';
+        relatedBox.style.display = 'none';
       }
-
-      relHtml += `</div>`;
-      relatedBox.innerHTML = relHtml;
-      relatedBox.style.display = 'block';
-    } else {
-      relatedBox.innerHTML = '';
-      relatedBox.style.display = 'none';
     }
 
     let html = `<button class="filter-btn all" onclick="toggleFilterValue('ALL')" style="${isAllSelected ? 'box-shadow: 0 0 0 2px #89c493;' : ''}">${label}</button>`;
@@ -2064,5 +2061,6 @@
     }
   }
 </script>
+
 </body>
 </html>
