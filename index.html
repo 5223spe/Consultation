@@ -953,7 +953,7 @@
 </div>
 
 <script>
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyyXzF9_OXOUrD3-iYuzrI8EqdVsluaYHCxY3Joa0w-2cGN2-VZdVcHWs0IQZbm3Iyd/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwLmxwyF_yHD1aZKqHFRSC7-Nf53zQArDH0dPaOVlReF_PAGHJ604WBqMDBGHetLtMS/exec";
 
   let teachers = [];
   let students = [];
@@ -1042,7 +1042,6 @@
     document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
   }
 
-  // 比對資料是否有變動
   function hasDataChanged(newTeachers, newStudents, newExamDates, newAppointments) {
     return (
       JSON.stringify(teachers) !== JSON.stringify(newTeachers) ||
@@ -1064,7 +1063,6 @@
           const newExamDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
           const newAppointments = data.appointments || [];
 
-          // 只有資料真的改變時才觸發 UI 更新
           if (hasDataChanged(newTeachers, newStudents, newExamDates, newAppointments)) {
             teachers = newTeachers;
             students = newStudents;
@@ -1413,7 +1411,6 @@
     }).join('');
   }
 
-  // 樂觀更新：新增教師
   function addTeacher() {
     const input = document.getElementById('newTeacherInput');
     const name = input.value.trim();
@@ -1421,7 +1418,7 @@
       const oldTeachers = [...teachers];
       teachers.push(name);
       input.value = '';
-      updateAllUI(); // 樂觀更新畫面
+      updateAllUI();
       syncListsToCloud(() => {
         teachers = oldTeachers;
         updateAllUI();
@@ -1429,18 +1426,16 @@
     }
   }
 
-  // 樂觀更新：刪除教師
   function removeTeacherByName(name) {
     const oldTeachers = [...teachers];
     teachers = teachers.filter(t => t !== name);
-    updateAllUI(); // 樂觀更新畫面
+    updateAllUI();
     syncListsToCloud(() => {
       teachers = oldTeachers;
       updateAllUI();
     });
   }
 
-  // 樂觀更新：新增學生
   function addStudent() {
     const input = document.getElementById('newStudentInput');
     const name = input.value.trim();
@@ -1448,7 +1443,7 @@
       const oldStudents = [...students];
       students.push(name);
       input.value = '';
-      updateAllUI(); // 樂觀更新畫面
+      updateAllUI();
       syncListsToCloud(() => {
         students = oldStudents;
         updateAllUI();
@@ -1456,11 +1451,10 @@
     }
   }
 
-  // 樂觀更新：刪除學生
   function removeStudentByName(name) {
     const oldStudents = [...students];
     students = students.filter(s => s !== name);
-    updateAllUI(); // 樂觀更新畫面
+    updateAllUI();
     syncListsToCloud(() => {
       students = oldStudents;
       updateAllUI();
@@ -1566,7 +1560,6 @@
     closeAgodaModal();
   }
 
-  // 樂觀更新：新增段考日期
   function addExamDate() {
     const examName = document.getElementById('examNameSelect').value;
 
@@ -1588,18 +1581,17 @@
     agodaEnd = null;
     document.getElementById('agodaDateDisplay').innerText = '📅 選擇段考日期';
 
-    updateAllUI(); // 樂觀更新畫面
+    updateAllUI();
     syncExamDatesToCloud(() => {
       examDates = oldExamDates;
       updateAllUI();
     });
   }
 
-  // 樂觀更新：刪除段考日期
   function removeExamDateByIndex(index) {
     const oldExamDates = [...examDates];
     examDates.splice(index, 1);
-    updateAllUI(); // 樂觀更新畫面
+    updateAllUI();
     syncExamDatesToCloud(() => {
       examDates = oldExamDates;
       updateAllUI();
@@ -1677,40 +1669,37 @@
     });
   }
 
-  // 樂觀更新：刪除預約
   function confirmDeleteAppointment(id, event, infoStr) {
-  if (event) event.stopPropagation();
-  if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
-    const deletedIndex = rawAppointments.findIndex(evt => evt.id === id);
-    if (deletedIndex === -1) return;
+    if (event) event.stopPropagation();
+    if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
+      const deletedIndex = rawAppointments.findIndex(evt => evt.id === id);
+      if (deletedIndex === -1) return;
 
-    // 1. 暫停背景自動輪詢，防止抓到舊資料導致畫面閃爍
-    stopPolling();
+      stopPolling();
 
-    const backupEvent = rawAppointments[deletedIndex];
-    rawAppointments.splice(deletedIndex, 1);
-    renderCalendars(); // 樂觀更新前端畫面
-
-    fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'deleteAppointment',
-        id: id
-      })
-    })
-    .then(res => res.json())
-    .then(result => {
-      // 2. 刪除成功後，重新啟動輪詢
-      startPolling();
-    })
-    .catch(err => {
-      alert("刪除失敗，已恢復資料！");
-      rawAppointments.splice(deletedIndex, 0, backupEvent);
+      const backupEvent = rawAppointments[deletedIndex];
+      rawAppointments.splice(deletedIndex, 1);
       renderCalendars();
-      startPolling(); // 發生例外時也重啟輪詢
-    });
+
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'deleteAppointment',
+          id: id
+        })
+      })
+      .then(res => res.json())
+      .then(result => {
+        startPolling();
+      })
+      .catch(err => {
+        alert("刪除失敗，已恢復資料！");
+        rawAppointments.splice(deletedIndex, 0, backupEvent);
+        renderCalendars();
+        startPolling();
+      });
+    }
   }
-}
 
   function updateAllUI() {
     renderManagementTags();
@@ -1923,7 +1912,6 @@
     document.getElementById('eventModal').style.display = 'none';
   }
 
-  // 樂觀更新：新增預約
   function saveEvent() {
     const teacher = document.getElementById('teacherSelect').value;
     const period = document.getElementById('periodSelect').value;
@@ -1984,7 +1972,7 @@
     closeModal();
 
     rawAppointments.push(eventData);
-    renderCalendars(); // 樂觀更新畫面
+    renderCalendars();
 
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
