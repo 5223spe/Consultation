@@ -85,22 +85,22 @@
     }
 
     .sidebar-left {
-      width: 190px;
-      flex-shrink: 0;
-      background: #fff;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      z-index: 100;
-      transition: all 0.3s ease;
-      position: sticky;
-      top: 15px;
-      max-height: calc(100vh - 80px); 
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+  width: 190px;
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  z-index: 100;
+  transition: all 0.3s ease;
+  position: sticky;
+  top: 15px;
+  max-height: calc(100vh - 80px); 
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* 改為可上下捲動 */
+}
 
     .sidebar-left.collapsed {
       width: 0;
