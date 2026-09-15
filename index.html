@@ -85,22 +85,22 @@
     }
 
     .sidebar-left {
-  width: 190px;
-  flex-shrink: 0;
-  background: #fff;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  z-index: 100;
-  transition: all 0.3s ease;
-  position: sticky;
-  top: 15px;
-  max-height: calc(100vh - 80px); 
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto; /* 改為可上下捲動 */
-}
+      width: 190px;
+      flex-shrink: 0;
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      z-index: 100;
+      transition: all 0.3s ease;
+      position: sticky;
+      top: 15px;
+      max-height: calc(100vh - 80px); 
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto; /* 改為可上下捲動 */
+    }
 
     .sidebar-left.collapsed {
       width: 0;
@@ -647,22 +647,22 @@
       .mobile-nav-bar { display: flex; }
 
       .sidebar-left, .sidebar-right {
-  position: fixed;
-  top: 0; bottom: 0;
-  height: 100vh;
-  width: 260px !important;
-  overflow-y: auto;
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-  border-radius: 0;
-  opacity: 1 !important;
-  z-index: 1000; /* 確保層級高於遮罩層 (z-index: 999) */
-  pointer-events: none; /* 收合時不擋住底下點擊 */
-}
+        position: fixed;
+        top: 0; bottom: 0;
+        height: 100vh;
+        width: 260px !important;
+        overflow-y: auto;
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        border-radius: 0;
+        opacity: 1 !important;
+        z-index: 1000; /* 確保層級高於遮罩層 (z-index: 999) */
+        pointer-events: none; /* 收合時不擋住底下點擊 */
+      }
 
-.sidebar-left.open, .sidebar-right.open { 
-  transform: translateX(0); 
-  pointer-events: auto; /* 展開後恢復可點擊與操作 */
-}
+      .sidebar-left.open, .sidebar-right.open { 
+        transform: translateX(0); 
+        pointer-events: auto; /* 展開後恢復可點擊與操作 */
+      }
 
       .sidebar-left { left: 0; transform: translateX(-100%); }
       .sidebar-right { right: 0; transform: translateX(100%); }
@@ -797,14 +797,14 @@
     }
 
     /* 確保篩選與管理內的按鈕在手機上點擊無死角 */
-.filter-btn, .toggle-btn, .multi-mode-btn, .btn-primary, .btn-danger, .btn-semester {
-  touch-action: manipulation;
-  cursor: pointer;
-}
+    .filter-btn, .toggle-btn, .multi-mode-btn, .btn-primary, .btn-danger, .btn-semester {
+      touch-action: manipulation;
+      cursor: pointer;
+    }
 
-.filter-btn *, .toggle-btn * {
-  pointer-events: none; /* 避免按鈕內部子文字干擾點擊事件觸發 */
-}
+    .filter-btn *, .toggle-btn * {
+      pointer-events: none; /* 避免按鈕內部子文字干擾點擊事件觸發 */
+    }
   </style>
 </head>
 <body>
@@ -1708,13 +1708,12 @@
         })
       })
       .then(res => res.json())
-      .then(result => {
-        startPolling();
-      })
       .catch(err => {
         alert("刪除失敗，已恢復資料！");
         rawAppointments.splice(deletedIndex, 0, backupEvent);
         renderCalendars();
+      })
+      .finally(() => {
         startPolling();
       });
     }
@@ -1896,7 +1895,9 @@
 
         dayCell.appendChild(eventContainer);
 
-        dayCell.onclick = () => {
+        dayCell.onclick = (e) => {
+          if (e.target.closest('.event-tag')) return;
+
           if (examInfo) {
             const confirmRegister = confirm(`⚠️ 該日期為「${examInfo.name}」，確定要登記晤談預約嗎？`);
             if (!confirmRegister) return;
@@ -1979,6 +1980,8 @@
       }
     }
 
+    stopPolling();
+
     const tempId = "temp_" + Date.now();
     const eventData = {
       id: tempId,
@@ -2010,6 +2013,9 @@
       alert("新增失敗，已移除該筆預約！");
       rawAppointments = rawAppointments.filter(evt => evt.id !== tempId);
       renderCalendars();
+    })
+    .finally(() => {
+      startPolling();
     });
   }
 
