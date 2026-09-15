@@ -362,41 +362,48 @@
       margin-bottom: 3px;
     }
 
+    /* 單行極限壓縮樣式（電腦版與手機版皆適用） */
     .event-tag {
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       font-weight: 600;
-      padding: 2px 4px;
-      border-radius: 4px;
+      padding: 1px 2px;
+      border-radius: 3px;
       margin-bottom: 3px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       border: 1px solid transparent;
-      white-space: nowrap;
+      white-space: nowrap;      /* 嚴格不允許換行 */
       overflow: hidden;
       cursor: pointer;
+      line-height: 1.2;
     }
 
     .event-tag .event-text {
+      white-space: nowrap;      /* 嚴格不允許換行 */
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      text-overflow: ellipsis;  /* 若儲存格寬度極限不足時截斷加省略號 */
+      flex: 1;
+      letter-spacing: -0.2px;   /* 緊縮字距多塞文字 */
     }
 
+    /* 刪除按鈕 (x) 無框、無背景底色極簡化 */
     .event-tag .delete-btn {
       cursor: pointer;
-      margin-left: 4px;
-      font-weight: bold;
-      opacity: 0.8;
-      flex-shrink: 0;
-      padding: 0 4px;
-      border-radius: 3px;
-      background: rgba(0,0,0,0.1);
+      margin-left: 2px;
+      font-size: 0.75rem;
+      line-height: 1;
+      opacity: 0.4;
+      flex-shrink: 0;           /* 絕不被壓縮 */
+      padding: 0;
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
     }
 
     .event-tag .delete-btn:hover {
-      background: rgba(239, 68, 68, 0.8);
-      color: white;
+      opacity: 1;
+      color: #ef4444 !important;
     }
 
     .manage-card {
@@ -694,47 +701,13 @@
       .day-cell { min-height: 70px; padding: 2px; }
       .day-number { font-size: 0.7rem; margin-bottom: 2px; }
 
-      /* 單行極限壓縮樣式 */
-.event-tag {
-  font-size: 0.7rem;        /* 微調字級，確保單行能塞下更多字 */
-  font-weight: 600;
-  padding: 1px 2px;         /* 邊距縮到最小 */
-  border-radius: 3px;
-  margin-bottom: 2px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid transparent;
-  white-space: nowrap;      /* 嚴格禁止換行 */
-  overflow: hidden;         /* 避免溢出 */
-  cursor: pointer;
-  line-height: 1.1;
-}
-
-.event-tag .event-text {
-  white-space: nowrap;      /* 嚴格禁止換行 */
-  overflow: hidden;         /* 若真的超過格線寬度時的保護機制 */
-  flex: 1;
-  letter-spacing: -0.2px;   /* 微幅緊縮字距，多塞 1-2 個字 */
-}
-
-/* 無框極簡 x 按鈕 */
-.event-tag .delete-btn {
-  cursor: pointer;
-  margin-left: 1px;
-  font-size: 0.75rem;
-  line-height: 1;
-  opacity: 0.4;             /* 平時低調 */
-  flex-shrink: 0;           /* 絕不被壓縮 */
-  padding: 0;               /* 零邊距 */
-  background: none;         /* 無底色/無框 */
-  border: none;
-}
-
-.event-tag .delete-btn:hover {
-  opacity: 1;
-  color: #dc3545;
-}
+      .event-tag {
+        font-size: 0.7rem;
+        padding: 1px 2px;
+        margin-bottom: 2px;
+        line-height: 1.1;
+      }
+    }
 
     .related-teachers-box {
       background: #f8fafc;
@@ -1957,18 +1930,15 @@
 
           const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
 
+          const deleteBtnHtml = isFaded 
+            ? '' 
+            : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
+
           if (isMobile) {
             const shortPeriod = getShortPeriod(evt.period);
-            const deleteBtnHtml = isFaded 
-              ? '' 
-              : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
-
             tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
           } else {
-            const deleteBtnHtml = isFaded 
-              ? '' 
-              : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
-              
+            // 電腦版完整顯示：節次 教師-學生姓名
             tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
           }
           
