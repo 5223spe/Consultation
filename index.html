@@ -694,26 +694,47 @@
       .day-cell { min-height: 70px; padding: 2px; }
       .day-number { font-size: 0.7rem; margin-bottom: 2px; }
 
-      .event-tag {
-        font-size: 0.62rem;
-        padding: 3px;
-        margin-bottom: 2px;
-        display: block;
-        white-space: normal;
-        word-break: break-all;
-        line-height: 1.25;
-        border-radius: 3px;
-      }
+      /* 單行極限壓縮樣式 */
+.event-tag {
+  font-size: 0.7rem;        /* 微調字級，確保單行能塞下更多字 */
+  font-weight: 600;
+  padding: 1px 2px;         /* 邊距縮到最小 */
+  border-radius: 3px;
+  margin-bottom: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid transparent;
+  white-space: nowrap;      /* 嚴格禁止換行 */
+  overflow: hidden;         /* 避免溢出 */
+  cursor: pointer;
+  line-height: 1.1;
+}
 
-      .event-tag .event-text {
-        white-space: normal;
-        overflow: visible;
-        display: inline;
-      }
+.event-tag .event-text {
+  white-space: nowrap;      /* 嚴格禁止換行 */
+  overflow: hidden;         /* 若真的超過格線寬度時的保護機制 */
+  flex: 1;
+  letter-spacing: -0.2px;   /* 微幅緊縮字距，多塞 1-2 個字 */
+}
 
-      .event-tag .delete-btn { display: inline-block !important; }
-      .manage-card { min-width: 100%; }
-    }
+/* 無框極簡 x 按鈕 */
+.event-tag .delete-btn {
+  cursor: pointer;
+  margin-left: 1px;
+  font-size: 0.75rem;
+  line-height: 1;
+  opacity: 0.4;             /* 平時低調 */
+  flex-shrink: 0;           /* 絕不被壓縮 */
+  padding: 0;               /* 零邊距 */
+  background: none;         /* 無底色/無框 */
+  border: none;
+}
+
+.event-tag .delete-btn:hover {
+  opacity: 1;
+  color: #dc3545;
+}
 
     .related-teachers-box {
       background: #f8fafc;
