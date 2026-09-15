@@ -99,7 +99,7 @@
       max-height: calc(100vh - 80px); 
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
+      overflow-y: auto; /* 改為可上下捲動 */
     }
 
     .sidebar-left.collapsed {
@@ -362,48 +362,32 @@
       margin-bottom: 3px;
     }
 
-    /* 單行極限壓縮樣式（電腦版與手機版皆適用） */
     .event-tag {
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 600;
-      padding: 1px 2px;
-      border-radius: 3px;
+      padding: 2px 4px;
+      border-radius: 4px;
       margin-bottom: 3px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       border: 1px solid transparent;
-      white-space: nowrap;      /* 嚴格不允許換行 */
+      white-space: nowrap;
       overflow: hidden;
-      cursor: pointer;
-      line-height: 1.2;
     }
 
     .event-tag .event-text {
-      white-space: nowrap;      /* 嚴格不允許換行 */
       overflow: hidden;
-      text-overflow: ellipsis;  /* 若儲存格寬度極限不足時截斷加省略號 */
-      flex: 1;
-      letter-spacing: -0.2px;   /* 緊縮字距多塞文字 */
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    /* 刪除按鈕 (x) 無框、無背景底色極簡化 */
     .event-tag .delete-btn {
       cursor: pointer;
       margin-left: 2px;
-      font-size: 0.75rem;
-      line-height: 1;
-      opacity: 0.4;
-      flex-shrink: 0;           /* 絕不被壓縮 */
-      padding: 0;
-      background: none !important;
-      border: none !important;
-      box-shadow: none !important;
-    }
-
-    .event-tag .delete-btn:hover {
-      opacity: 1;
-      color: #ef4444 !important;
+      font-weight: bold;
+      opacity: 0.7;
+      flex-shrink: 0;
     }
 
     .manage-card {
@@ -671,13 +655,13 @@
         box-shadow: 0 0 15px rgba(0,0,0,0.2);
         border-radius: 0;
         opacity: 1 !important;
-        z-index: 1000;
-        pointer-events: none;
+        z-index: 1000; /* 確保層級高於遮罩層 (z-index: 999) */
+        pointer-events: none; /* 收合時不擋住底下點擊 */
       }
 
       .sidebar-left.open, .sidebar-right.open { 
         transform: translateX(0); 
-        pointer-events: auto;
+        pointer-events: auto; /* 展開後恢復可點擊與操作 */
       }
 
       .sidebar-left { left: 0; transform: translateX(-100%); }
@@ -702,11 +686,24 @@
       .day-number { font-size: 0.7rem; margin-bottom: 2px; }
 
       .event-tag {
-        font-size: 0.7rem;
-        padding: 1px 2px;
+        font-size: 0.62rem;
+        padding: 3px;
         margin-bottom: 2px;
-        line-height: 1.1;
+        display: block;
+        white-space: normal;
+        word-break: break-all;
+        line-height: 1.25;
+        border-radius: 3px;
       }
+
+      .event-tag .event-text {
+        white-space: normal;
+        overflow: visible;
+        display: inline;
+      }
+
+      .event-tag .delete-btn { display: inline-block !important; }
+      .manage-card { min-width: 100%; }
     }
 
     .related-teachers-box {
@@ -799,13 +796,14 @@
       color: #0369a1;
     }
 
+    /* 確保篩選與管理內的按鈕在手機上點擊無死角 */
     .filter-btn, .toggle-btn, .multi-mode-btn, .btn-primary, .btn-danger, .btn-semester {
       touch-action: manipulation;
       cursor: pointer;
     }
 
     .filter-btn *, .toggle-btn * {
-      pointer-events: none;
+      pointer-events: none; /* 避免按鈕內部子文字干擾點擊事件觸發 */
     }
   </style>
 </head>
@@ -972,7 +970,7 @@
 </div>
 
 <script>
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyNmxZ2rOqMw3e2jwTD9ciJd02tCoAbgbRgklQ_Iua0XGapCMJ1LFyFnsnTozIG5s8u/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyrWQ01iYgcWLePgllSTAgytbMJDipFNA4J8FJdHTO24hqSqrEhIo3gtWraI4JQRbY/exec";
 
   let teachers = [];
   let students = [];
@@ -996,7 +994,7 @@
   let selectedRelatedTeachers = [];
   let currentSemester = 0;
   let pollTimer = null;
-  let isOperating = false;
+  let isOperating = false; // 操作鎖（避免同步覆蓋）
 
   let agodaStart = null;
   let agodaEnd = null;
@@ -1062,6 +1060,7 @@
     document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
   }
 
+  // LocalStorage 快取控制
   function saveToLocalCache() {
     try {
       localStorage.setItem('cached_teachers', JSON.stringify(teachers));
@@ -1121,9 +1120,10 @@
       .catch(err => console.error("背景自動同步失敗：", err));
   }
 
+  // 將背景輪詢間隔拉長至 30 秒 (30000 毫秒) 以節省 API 配額
   function startPolling() {
     if (!pollTimer) {
-      pollTimer = setInterval(silentFetchData, 10000);
+      pollTimer = setInterval(silentFetchData, 30000);
     }
   }
 
@@ -1138,6 +1138,7 @@
     const currentMonth = new Date().getMonth();
     currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
     
+    // 優先讀取 LocalStorage 快取，讓 UI 瞬間完成渲染
     const hasCache = loadFromLocalCache();
     if (hasCache) {
       updateAllUI();
@@ -1148,6 +1149,7 @@
     fetchCloudData();
     startPolling();
 
+    // 分頁可視性檢查 (Page Visibility API)
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         stopPolling();
@@ -1735,16 +1737,12 @@
   }
 
   function confirmDeleteAppointment(id, event, infoStr) {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    
+    if (event) event.stopPropagation();
     if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
-      const deletedIndex = rawAppointments.findIndex(evt => String(evt.id) === String(id));
+      const deletedIndex = rawAppointments.findIndex(evt => evt.id === id);
       if (deletedIndex === -1) return;
 
-      isOperating = true;
+      isOperating = true; // 開啟操作鎖，禁止背景拉資料覆蓋
       stopPolling();
 
       const backupEvent = rawAppointments[deletedIndex];
@@ -1772,7 +1770,7 @@
         renderCalendars();
       })
       .finally(() => {
-        isOperating = false;
+        isOperating = false; // 解除鎖定
         startPolling();
       });
     }
@@ -1930,25 +1928,30 @@
 
           const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
 
-          const deleteBtnHtml = isFaded 
-            ? '' 
-            : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
-
           if (isMobile) {
             const shortPeriod = getShortPeriod(evt.period);
+            const deleteBtnHtml = isFaded 
+              ? '' 
+              : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
+
             tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
+            
+            if (!isFaded) {
+              tag.addEventListener('click', function(e) {
+                if (e.target.classList.contains('delete-btn')) return;
+                e.preventDefault();
+                e.stopPropagation();
+                confirmDeleteAppointment(evt.id, e, infoStr);
+              });
+            }
           } else {
-            // 電腦版完整顯示：節次 教師-學生姓名
+            const deleteBtnHtml = isFaded 
+              ? '' 
+              : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
+              
             tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
           }
           
-          if (!isFaded) {
-            tag.onclick = (e) => {
-              e.stopPropagation();
-              confirmDeleteAppointment(evt.id, e, infoStr);
-            };
-          }
-
           eventContainer.appendChild(tag);
         });
 
@@ -2134,6 +2137,7 @@
       saveToLocalCache();
       updateAllUI();
 
+      // 優化：改用單一批次刪除 API (deleteAppointmentsBatch)
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         body: JSON.stringify({
