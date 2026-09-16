@@ -526,11 +526,12 @@
 
     .btn-semester:hover { background-color: #116165; }
 
+    /* 方案二：低飽和暗紅外框按鈕 */
     .btn-delete-outline {
       background-color: transparent;
       color: #c53030;
-      border: 1.5px solid #c53030;
-      border-radius: 8px;
+      border: 2px solid #c53030;
+      border-radius: 6px;
       padding: 6px 12px;
       font-size: 0.82rem;
       font-weight: bold;
@@ -551,27 +552,6 @@
 
     .btn-delete-outline:active {
       background-color: #fed7d7;
-    }
-
-    .btn-delete-solid {
-      background-color: #D9536F;
-      color: #ffffff;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 0.82rem;
-      font-weight: bold;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: background-color 0.2s ease;
-      width: auto;
-    }
-
-    .btn-delete-solid:hover {
-      background-color: #c4435d;
     }
 
     .modal {
@@ -1000,7 +980,7 @@
     </div>
 
     <div class="btn-group" style="justify-content: space-between; width: 100%;">
-      <button class="btn-delete-solid" id="btnDetailDelete">🗑️ 刪除此紀錄</button>
+      <button class="btn-delete-outline" id="btnDetailDelete" style="width: auto;">🗑️ 刪除此紀錄</button>
       <button class="btn-secondary" onclick="closeDetailModal()">關閉</button>
     </div>
   </div>
