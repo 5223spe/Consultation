@@ -523,7 +523,6 @@
 
     .btn-danger {
       background-color: #E65942;
-      color: white;
       box-shadow: 0 2px 5px rgba(230, 89, 66, 0.25);
     }
 
@@ -695,14 +694,6 @@
         word-break: break-all;
         line-height: 1.25;
         border-radius: 3px;
-        cursor: pointer;
-        user-select: none;
-        -webkit-tap-highlight-color: rgba(0,0,0,0.1);
-      }
-
-      .event-tag:active {
-        transform: scale(0.97);
-        opacity: 0.8;
       }
 
       .event-tag .event-text {
@@ -812,14 +803,8 @@
     }
 
     .filter-btn *, .toggle-btn * {
-      pointer-events: none; /* 避免按鈕內部子文字干擾點擊事件觸控 */
+      pointer-events: none; /* 避免按鈕內部子文字干擾點擊事件觸發 */
     }
-    /* 僅在螢幕寬度 768px 以下（手機版）隱藏晤談標籤的刪除按鈕 */
-@media (max-width: 768px) {
-  .event-tag .delete-btn {
-    display: none !important;
-  }
-}
   </style>
 </head>
 <body>
@@ -960,6 +945,22 @@
   </div>
 </div>
 
+<!-- 新增：晤談詳細資訊彈出視窗 -->
+<div class="modal" id="detailModal">
+  <div class="modal-content" style="max-width: 380px;">
+    <div class="modal-header" style="color: #0f766e; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">晤談詳細資訊</div>
+    
+    <div style="margin: 15px 0; font-size: 0.95rem; line-height: 1.8;" id="detailModalBody">
+      <!-- 動態填入內容 -->
+    </div>
+
+    <div class="btn-group" style="justify-content: space-between;">
+      <button class="btn-danger" id="btnDetailDelete">🗑️ 刪除此紀錄</button>
+      <button class="btn-secondary" onclick="closeDetailModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="agodaDateModal">
   <div class="modal-content" style="max-width: 350px;">
     <div class="modal-header" style="font-size: 1rem;">選擇段考日期區間 (點選開始與結束)</div>
@@ -980,18 +981,6 @@
     <div class="btn-group">
       <button class="btn-secondary" onclick="closeAgodaModal()">取消</button>
       <button class="btn-primary" onclick="confirmAgodaDate()">確定選擇</button>
-    </div>
-  </div>
-</div>
-
-<!-- 刪除晤談紀錄確認小視窗 -->
-<div class="modal" id="deleteConfirmModal">
-  <div class="modal-content" style="max-width: 320px; text-align: center;">
-    <div class="modal-header" style="color: #ef4444; font-size: 1.1rem; margin-bottom: 10px;">⚠️ 刪除晤談紀錄</div>
-    <p id="deleteConfirmMessage" style="font-size: 0.9rem; color: #334155; margin: 15px 0; word-break: break-all; line-height: 1.4;"></p>
-    <div class="btn-group" style="justify-content: center; gap: 12px; margin-top: 15px;">
-      <button class="btn-secondary" onclick="closeDeleteModal()">取消</button>
-      <button class="btn-danger" style="padding: 6px 16px;" id="btnConfirmDeleteExecute">確定刪除</button>
     </div>
   </div>
 </div>
@@ -1023,13 +1012,36 @@
   let pollTimer = null;
   let isOperating = false; // 操作鎖（避免同步覆蓋）
 
-  let pendingDeleteId = null;
-  let pendingDeleteInfoStr = "";
-
   let agodaStart = null;
   let agodaEnd = null;
   let agodaViewYear = new Date().getFullYear();
   let agodaViewMonth = new Date().getMonth();
+
+  let currentDetailEvent = null;
+
+  function showEventDetail(evt, infoStr) {
+    currentDetailEvent = evt;
+    const body = document.getElementById('detailModalBody');
+    body.innerHTML = `
+      <div><strong>日期：</strong>${evt.date}</div>
+      <div><strong>節次：</strong>${evt.period}</div>
+      <div><strong>教師：</strong>${evt.teacher}</div>
+      <div><strong>學生：</strong>${evt.student}</div>
+    `;
+
+    const deleteBtn = document.getElementById('btnDetailDelete');
+    deleteBtn.onclick = function() {
+      closeDetailModal();
+      confirmDeleteAppointment(evt.id, null, infoStr);
+    };
+
+    document.getElementById('detailModal').style.display = 'flex';
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detailModal').style.display = 'none';
+    currentDetailEvent = null;
+  }
 
   const basePalette = [
     { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
@@ -1766,67 +1778,44 @@
     });
   }
 
-  // 開啟刪除確認 Modal 彈窗
   function confirmDeleteAppointment(id, event, infoStr) {
     if (event) event.stopPropagation();
-    
-    pendingDeleteId = id;
-    pendingDeleteInfoStr = infoStr;
-    
-    document.getElementById('deleteConfirmMessage').innerText = `確定要刪除以下晤談紀錄嗎？\n\n【${infoStr}】`;
-    document.getElementById('deleteConfirmModal').style.display = 'flex';
-    
-    document.getElementById('btnConfirmDeleteExecute').onclick = executeDeleteAppointment;
-  }
+    if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
+      const deletedIndex = rawAppointments.findIndex(evt => evt.id === id);
+      if (deletedIndex === -1) return;
 
-  // 關閉刪除確認 Modal
-  function closeDeleteModal() {
-    document.getElementById('deleteConfirmModal').style.display = 'none';
-    pendingDeleteId = null;
-    pendingDeleteInfoStr = "";
-  }
+      isOperating = true; // 開啟操作鎖，禁止背景拉資料覆蓋
+      stopPolling();
 
-  // 執行實際刪除動作
-  function executeDeleteAppointment() {
-    if (!pendingDeleteId) return;
-
-    const id = pendingDeleteId;
-    closeDeleteModal();
-
-    const deletedIndex = rawAppointments.findIndex(evt => evt.id === id);
-    if (deletedIndex === -1) return;
-
-    isOperating = true; // 開啟操作鎖，禁止背景拉資料覆蓋
-    stopPolling();
-
-    const backupEvent = rawAppointments[deletedIndex];
-    rawAppointments.splice(deletedIndex, 1);
-    saveToLocalCache();
-    renderCalendars();
-
-    fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'deleteAppointment',
-        id: id
-      })
-    })
-    .then(res => res.json())
-    .then(res => {
-      if (!res || !res.success) {
-        throw new Error("刪除失敗");
-      }
-    })
-    .catch(err => {
-      alert("刪除失敗，已恢復資料！");
-      rawAppointments.splice(deletedIndex, 0, backupEvent);
+      const backupEvent = rawAppointments[deletedIndex];
+      rawAppointments.splice(deletedIndex, 1);
       saveToLocalCache();
       renderCalendars();
-    })
-    .finally(() => {
-      isOperating = false; // 解除鎖定
-      startPolling();
-    });
+
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'deleteAppointment',
+          id: id
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (!res || !res.success) {
+          throw new Error("刪除失敗");
+        }
+      })
+      .catch(err => {
+        alert("刪除失敗，已恢復資料！");
+        rawAppointments.splice(deletedIndex, 0, backupEvent);
+        saveToLocalCache();
+        renderCalendars();
+      })
+      .finally(() => {
+        isOperating = false; // 解除鎖定
+        startPolling();
+      });
+    }
   }
 
   function updateAllUI() {
@@ -1977,6 +1966,8 @@
             tag.style.opacity = '0.35';
             tag.style.filter = 'grayscale(25%)';
             tag.style.cursor = 'default';
+          } else {
+            tag.style.cursor = 'pointer';
           }
 
           const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
@@ -1998,11 +1989,15 @@
               });
             }
           } else {
-            const deleteBtnHtml = isFaded 
-              ? '' 
-              : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
-              
-            tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
+            tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>`;
+            
+            if (!isFaded) {
+              tag.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                showEventDetail(evt, infoStr);
+              });
+            }
           }
           
           eventContainer.appendChild(tag);
