@@ -25,7 +25,7 @@
       --primary-color: #0f766e;
       --border-color: #e2e8f0;
       --bg-light: #f8fafc;
-      --danger-color: #ef4444;
+      --danger-color: #d9536f;
     }
 
     * { box-sizing: border-box; }
@@ -388,6 +388,11 @@
       font-weight: bold;
       opacity: 0.7;
       flex-shrink: 0;
+      padding: 0 2px;
+    }
+
+    .event-tag .delete-btn:hover {
+      opacity: 1;
     }
 
     .manage-card {
@@ -522,11 +527,11 @@
     .btn-semester:hover { background-color: #116165; }
 
     .btn-danger {
-      background-color: #E65942;
-      box-shadow: 0 2px 5px rgba(230, 89, 66, 0.25);
+      background-color: #d9536f;
+      box-shadow: 0 2px 5px rgba(217, 83, 111, 0.25);
     }
 
-    .btn-danger:hover { background-color: #C9422C; }
+    .btn-danger:hover { background-color: #c8415d; }
 
     .modal {
       display: none;
@@ -689,7 +694,7 @@
         font-size: 0.62rem;
         padding: 3px;
         margin-bottom: 2px;
-        display: block;
+        display: flex;
         white-space: normal;
         word-break: break-all;
         line-height: 1.25;
@@ -1966,13 +1971,12 @@
           }
 
           const infoStr = `${evt.date} ${evt.period} ${evt.teacher}-${evt.student}`;
+          const deleteBtnHtml = isFaded 
+            ? '' 
+            : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
 
           if (isMobile) {
             const shortPeriod = getShortPeriod(evt.period);
-            const deleteBtnHtml = isFaded 
-              ? '' 
-              : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
-
             tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
             
             if (!isFaded) {
@@ -1984,10 +1988,11 @@
               });
             }
           } else {
-            tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>`;
+            tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
             
             if (!isFaded) {
               tag.addEventListener('click', function(e) {
+                if (e.target.classList.contains('delete-btn')) return;
                 e.preventDefault();
                 e.stopPropagation();
                 showEventDetail(evt, infoStr);
