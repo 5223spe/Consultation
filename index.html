@@ -526,33 +526,13 @@
 
     .btn-semester:hover { background-color: #116165; }
 
-    /* 方案二：低飽和暗紅外框按鈕 */
-    .btn-delete-outline {
-      background-color: transparent;
-      color: #c53030;
-      border: 2px solid #c53030;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 0.82rem;
-      font-weight: bold;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-      width: 100%;
+    .btn-danger {
+      background-color: #d8526d;
+      color: #ffffff;
+      box-shadow: 0 2px 5px rgba(216, 82, 109, 0.25);
     }
 
-    .btn-delete-outline:hover {
-      background-color: #fff5f5;
-      color: #9b2c2c;
-      border-color: #9b2c2c;
-    }
-
-    .btn-delete-outline:active {
-      background-color: #fed7d7;
-    }
+    .btn-danger:hover { background-color: #b83e56; }
 
     .modal {
       display: none;
@@ -822,7 +802,7 @@
       color: #0369a1;
     }
 
-    .filter-btn, .toggle-btn, .multi-mode-btn, .btn-primary, .btn-delete-outline, .btn-semester {
+    .filter-btn, .toggle-btn, .multi-mode-btn, .btn-primary, .btn-danger, .btn-semester {
       touch-action: manipulation;
       cursor: pointer;
     }
@@ -939,7 +919,7 @@
     <div class="action-btn-group">
        <button class="action-btn btn-semester" onclick="loadSemesterCalendar(1)">📅 載入上學期月曆</button>
        <button class="action-btn btn-semester" onclick="loadSemesterCalendar(2)">📅 載入下學期月曆</button>
-       <button class="btn-delete-outline" onclick="clearCurrentSemesterData()">🗑️ 清除當前學期晤談紀錄</button>
+       <button class="action-btn btn-danger" onclick="clearCurrentSemesterData()">🗑️ 清除當前學期晤談紀錄</button>
     </div>
   </div>
 </div>
@@ -979,8 +959,8 @@
       <!-- 動態填入內容 -->
     </div>
 
-    <div class="btn-group" style="justify-content: space-between; width: 100%;">
-      <button class="btn-delete-outline" id="btnDetailDelete" style="width: auto;">🗑️ 刪除此紀錄</button>
+    <div class="btn-group" style="justify-content: space-between;">
+      <button class="btn-danger" id="btnDetailDelete">🗑️ 刪除此紀錄</button>
       <button class="btn-secondary" onclick="closeDetailModal()">關閉</button>
     </div>
   </div>
