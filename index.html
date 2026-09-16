@@ -814,6 +814,12 @@
     .filter-btn *, .toggle-btn * {
       pointer-events: none; /* 避免按鈕內部子文字干擾點擊事件觸控 */
     }
+    /* 僅在螢幕寬度 768px 以下（手機版）隱藏晤談標籤的刪除按鈕 */
+@media (max-width: 768px) {
+  .event-tag .delete-btn {
+    display: none !important;
+  }
+}
   </style>
 </head>
 <body>
