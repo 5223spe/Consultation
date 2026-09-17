@@ -351,7 +351,7 @@
     .exam-text-label {
       font-size: 0.72rem;
       font-weight: bold;
-      color: #475569;
+      color: #d8526d;
       margin-bottom: 4px;
       line-height: 1.2;
     }
@@ -527,32 +527,32 @@
     .btn-semester:hover { background-color: #116165; }
 
     .btn-delete-outline {
-  background-color: #d8526d; /* 圖片對應的桃紅/粉紅色背景 */
-  color: #ffffff;            /* 純白文字 */
-  border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  font-weight: bold;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  box-shadow: 0 2px 5px rgba(216, 82, 109, 0.35); /* 鮮明陰影 */
-  transition: all 0.2s ease;
-  width: 100%;
-}
+      background-color: #d8526d;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 2px 5px rgba(216, 82, 109, 0.35);
+      transition: all 0.2s ease;
+      width: 100%;
+    }
 
-.btn-delete-outline:hover {
-  background-color: #c4435d; /* 滑鼠懸停深色 */
-  box-shadow: 0 3px 7px rgba(216, 82, 109, 0.45);
-}
+    .btn-delete-outline:hover {
+      background-color: #c4435d;
+      box-shadow: 0 3px 7px rgba(216, 82, 109, 0.45);
+    }
 
     .btn-delete-outline:active {
-  background-color: #b03850;
-  transform: translateY(1px);
-}
+      background-color: #b03850;
+      transform: translateY(1px);
+    }
 
     .modal {
       display: none;
@@ -925,7 +925,7 @@
           </select>
         </div>
         
-        <div class="agoda-picker-trigger" onclick="openAgodaDatePicker()">
+        <div class="agoda-picker-trigger" onclick="openAgodaDatePicker('exam')">
           <span id="agodaDateDisplay">📅 選擇段考日期</span>
           <span style="font-size: 0.75rem; color: #0f766e; flex-shrink: 0;">選擇</span>
         </div>
@@ -933,6 +933,28 @@
         <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="addExamDate()">新增段考</button>
 
         <div class="tag-list" id="examTagList" style="margin-top: 6px;"></div>
+      </div>
+    </div>
+
+    <!-- 新增：學校放假管理 -->
+    <div class="manage-card">
+      <div class="manage-card-header" onclick="toggleHolidaySection()">
+        <h3>學校放假管理</h3>
+        <button class="collapse-btn" id="btnToggleHolidaySec">▼</button>
+      </div>
+      <div id="holidayManageContent" style="display: none; margin-top: 8px;">
+        <div class="input-group">
+          <input type="text" id="holidayNameInput" placeholder="例：校慶補假、彈性放假">
+        </div>
+        
+        <div class="agoda-picker-trigger" onclick="openAgodaDatePicker('holiday')">
+          <span id="agodaHolidayDateDisplay">📅 選擇放假日期</span>
+          <span style="font-size: 0.75rem; color: #0f766e; flex-shrink: 0;">選擇</span>
+        </div>
+
+        <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="addSchoolHoliday()">新增學校放假</button>
+
+        <div class="tag-list" id="schoolHolidayTagList" style="margin-top: 6px;"></div>
       </div>
     </div>
 
@@ -988,7 +1010,7 @@
 
 <div class="modal" id="agodaDateModal">
   <div class="modal-content" style="max-width: 350px;">
-    <div class="modal-header" style="font-size: 1rem;">選擇段考日期區間 (點選開始與結束)</div>
+    <div class="modal-header" style="font-size: 1rem;">選擇日期區間 (點選開始與結束)</div>
     
     <div class="agoda-cal-container">
       <div class="agoda-cal-header">
@@ -1016,6 +1038,8 @@
   let teachers = [];
   let students = [];
   let examDates = []; 
+  let schoolHolidays = []; // 學校自訂放假
+  let nationalHolidaysMap = {}; // 國定假日對照表 (YYYY-MM-DD: "國定假日名稱")
   let rawAppointments = []; 
   const periods = ["第一節", "第二節", "第三節", "第四節", "午休", "第五節", "第六節", "第七節", "第八節"];
 
@@ -1037,6 +1061,7 @@
   let pollTimer = null;
   let isOperating = false;
 
+  let pickerTarget = 'exam'; // 'exam' 或 'holiday'
   let agodaStart = null;
   let agodaEnd = null;
   let agodaViewYear = new Date().getFullYear();
@@ -1093,6 +1118,18 @@
     }
   }
 
+  function toggleHolidaySection() {
+    const content = document.getElementById('holidayManageContent');
+    const btn = document.getElementById('btnToggleHolidaySec');
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      btn.innerText = '▲';
+    } else {
+      content.style.display = 'none';
+      btn.innerText = '▼';
+    }
+  }
+
   function toggleDesktopSidebar(side) {
     if (side === 'left') {
       const sb = document.getElementById('sidebarLeft');
@@ -1132,6 +1169,7 @@
       localStorage.setItem('cached_teachers', JSON.stringify(teachers));
       localStorage.setItem('cached_students', JSON.stringify(students));
       localStorage.setItem('cached_examDates', JSON.stringify(examDates));
+      localStorage.setItem('cached_schoolHolidays', JSON.stringify(schoolHolidays));
       localStorage.setItem('cached_rawAppointments', JSON.stringify(rawAppointments));
     } catch (e) { console.error("Cache save failed", e); }
   }
@@ -1141,10 +1179,12 @@
       const t = localStorage.getItem('cached_teachers');
       const s = localStorage.getItem('cached_students');
       const e = localStorage.getItem('cached_examDates');
+      const h = localStorage.getItem('cached_schoolHolidays');
       const a = localStorage.getItem('cached_rawAppointments');
       if (t) teachers = JSON.parse(t);
       if (s) students = JSON.parse(s);
       if (e) examDates = JSON.parse(e);
+      if (h) schoolHolidays = JSON.parse(h);
       if (a) rawAppointments = JSON.parse(a);
       return !!(t || s || e || a);
     } catch (err) {
@@ -1152,11 +1192,12 @@
     }
   }
 
-  function hasDataChanged(newTeachers, newStudents, newExamDates, newAppointments) {
+  function hasDataChanged(newTeachers, newStudents, newExamDates, newHolidays, newAppointments) {
     return (
       JSON.stringify(teachers) !== JSON.stringify(newTeachers) ||
       JSON.stringify(students) !== JSON.stringify(newStudents) ||
       JSON.stringify(examDates) !== JSON.stringify(newExamDates) ||
+      JSON.stringify(schoolHolidays) !== JSON.stringify(newHolidays) ||
       JSON.stringify(rawAppointments) !== JSON.stringify(newAppointments)
     );
   }
@@ -1171,12 +1212,14 @@
           const newTeachers = data.lists ? (data.lists.teachers || []) : [];
           const newStudents = data.lists ? (data.lists.students || []) : [];
           const newExamDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
+          const newHolidays = data.schoolHolidays || (data.lists ? data.lists.schoolHolidays || [] : []);
           const newAppointments = data.appointments || [];
 
-          if (hasDataChanged(newTeachers, newStudents, newExamDates, newAppointments)) {
+          if (hasDataChanged(newTeachers, newStudents, newExamDates, newHolidays, newAppointments)) {
             teachers = newTeachers;
             students = newStudents;
             examDates = newExamDates;
+            schoolHolidays = newHolidays;
             rawAppointments = newAppointments;
             saveToLocalCache();
             updateAllUI();
@@ -1199,6 +1242,40 @@
     }
   }
 
+  // 取得台灣國定假日 JSON API
+  function fetchNationalHolidays() {
+    const year = new Date().getFullYear();
+    const urls = [
+      `https://cdn.jsdelivr.net/gh/icalorg/holiday-calendar/taiwan.json`,
+      `https://api.oopen.io/holiday?year=${year}`
+    ];
+    
+    fetch(`https://cdn.jsdelivr.net/gh/taiwan-calendar/taiwan-calendar@main/data/${year}.json`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          data.forEach(item => {
+            if (item.isHoliday && item.description) {
+              const formattedDate = `${item.date.slice(0,4)}-${item.date.slice(4,6)}-${item.date.slice(6,8)}`;
+              nationalHolidaysMap[formattedDate] = item.description;
+            }
+          });
+          renderCalendars();
+        }
+      })
+      .catch(e => {
+        // 備用國定假日固定清單 (預防網路請求受阻)
+        const currentY = new Date().getFullYear();
+        nationalHolidaysMap[`${currentY}-01-01`] = "元旦";
+        nationalHolidaysMap[`${currentY}-02-28`] = "和平紀念日";
+        nationalHolidaysMap[`${currentY}-04-04`] = "兒童節";
+        nationalHolidaysMap[`${currentY}-04-05`] = "清明節";
+        nationalHolidaysMap[`${currentY}-05-01`] = "勞動節";
+        nationalHolidaysMap[`${currentY}-10-10`] = "國慶日";
+        renderCalendars();
+      });
+  }
+
   window.onload = function() {
     const currentMonth = new Date().getMonth();
     currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
@@ -1211,6 +1288,7 @@
     }
 
     fetchCloudData();
+    fetchNationalHolidays();
     startPolling();
 
     document.addEventListener('visibilitychange', () => {
@@ -1234,6 +1312,7 @@
         teachers = data.lists ? (data.lists.teachers || []) : [];
         students = data.lists ? (data.lists.students || []) : [];
         examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
+        schoolHolidays = data.schoolHolidays || (data.lists ? data.lists.schoolHolidays || [] : []);
         rawAppointments = data.appointments || [];
         saveToLocalCache();
         updateAllUI();
@@ -1490,6 +1569,7 @@
     const tList = document.getElementById('teacherTagList');
     const sList = document.getElementById('studentTagList');
     const eList = document.getElementById('examTagList');
+    const hList = document.getElementById('schoolHolidayTagList');
 
     tList.innerHTML = teachers.map((t) => {
       const colors = getColorForEntity(t, 'teacher');
@@ -1525,6 +1605,19 @@
                   <span>${dateText}</span>
                 </div>
                 <span class="delete-btn" onclick="removeExamDateByIndex(${index})">&times;</span>
+              </div>`;
+    }).join('');
+
+    hList.innerHTML = schoolHolidays.map((item, index) => {
+      let titleText = item.name || '學校放假';
+      let dateText = (!item.endDate || item.startDate === item.endDate) ? item.startDate : `${item.startDate}~${item.endDate}`;
+
+      return `<div class="manage-tag exam-tag" style="background:#fef3c7; border-color:#fde047; color:#854d0e;">
+                <div>
+                  <strong>${titleText}：</strong><br>
+                  <span>${dateText}</span>
+                </div>
+                <span class="delete-btn" onclick="removeSchoolHolidayByIndex(${index})">&times;</span>
               </div>`;
     }).join('');
   }
@@ -1587,7 +1680,8 @@
     });
   }
 
-  function openAgodaDatePicker() {
+  function openAgodaDatePicker(target = 'exam') {
+    pickerTarget = target;
     document.getElementById('agodaDateModal').style.display = 'flex';
     renderAgodaCalendar();
   }
@@ -1682,7 +1776,12 @@
       agodaEnd = agodaStart;
     }
     const display = (agodaStart === agodaEnd) ? agodaStart : `${agodaStart} ~ ${agodaEnd}`;
-    document.getElementById('agodaDateDisplay').innerText = `📅 ${display}`;
+    
+    if (pickerTarget === 'holiday') {
+      document.getElementById('agodaHolidayDateDisplay').innerText = `📅 ${display}`;
+    } else {
+      document.getElementById('agodaDateDisplay').innerText = `📅 ${display}`;
+    }
     closeAgodaModal();
   }
 
@@ -1728,6 +1827,49 @@
     });
   }
 
+  function addSchoolHoliday() {
+    const holidayName = document.getElementById('holidayNameInput').value.trim() || '學校放假';
+
+    if (!agodaStart) {
+      alert("請點擊選擇放假日期區間！");
+      return;
+    }
+
+    const newHolidayObj = {
+      name: holidayName,
+      startDate: agodaStart,
+      endDate: agodaEnd || agodaStart
+    };
+
+    const oldHolidays = [...schoolHolidays];
+    schoolHolidays.push(newHolidayObj);
+
+    agodaStart = null;
+    agodaEnd = null;
+    document.getElementById('holidayNameInput').value = '';
+    document.getElementById('agodaHolidayDateDisplay').innerText = '📅 選擇放假日期';
+
+    updateAllUI();
+    saveToLocalCache();
+    syncHolidaysToCloud(() => {
+      schoolHolidays = oldHolidays;
+      saveToLocalCache();
+      updateAllUI();
+    });
+  }
+
+  function removeSchoolHolidayByIndex(index) {
+    const oldHolidays = [...schoolHolidays];
+    schoolHolidays.splice(index, 1);
+    updateAllUI();
+    saveToLocalCache();
+    syncHolidaysToCloud(() => {
+      schoolHolidays = oldHolidays;
+      saveToLocalCache();
+      updateAllUI();
+    });
+  }
+
   function syncExamDatesToCloud(onError) {
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
@@ -1743,12 +1885,28 @@
     });
   }
 
-  function getExamInfoForDate(targetDateStr) {
+  function syncHolidaysToCloud(onError) {
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'saveSchoolHolidays',
+        schoolHolidays: schoolHolidays
+      })
+    })
+    .then(res => res.json())
+    .catch(err => {
+      alert("同步放假資料失敗，已恢復先前設定！");
+      if (onError) onError();
+    });
+  }
+
+  function getSpecialDayInfoForDate(targetDateStr) {
     const target = new Date(targetDateStr);
     target.setHours(0, 0, 0, 0);
 
     let matchedNames = [];
 
+    // 1. 段考日
     for (const item of examDates) {
       if (typeof item === 'object' && item !== null) {
         const start = new Date(item.startDate);
@@ -1774,6 +1932,31 @@
         } else if (item === targetDateStr) {
           if (!matchedNames.includes("段考")) matchedNames.push("段考");
         }
+      }
+    }
+
+    // 2. 學校自訂放假
+    for (const item of schoolHolidays) {
+      if (typeof item === 'object' && item !== null) {
+        const start = new Date(item.startDate);
+        const end = new Date(item.endDate || item.startDate);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+
+        if (target >= start && target <= end) {
+          const hName = item.name || "學校放假";
+          if (!matchedNames.includes(hName)) {
+            matchedNames.push(hName);
+          }
+        }
+      }
+    }
+
+    // 3. 國定假日 (自動判斷)
+    if (nationalHolidaysMap[targetDateStr]) {
+      const nName = nationalHolidaysMap[targetDateStr];
+      if (!matchedNames.includes(nName)) {
+        matchedNames.push(nName);
       }
     }
 
@@ -1929,13 +2112,13 @@
         dayCell.className = 'day-cell';
         
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const examInfo = getExamInfoForDate(dateStr);
+        const specialInfo = getSpecialDayInfoForDate(dateStr);
 
         const currentDayObj = new Date(year, month, day);
         const dayOfWeek = currentDayObj.getDay();
         const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
 
-        if (examInfo) {
+        if (specialInfo) {
           dayCell.classList.add('exam-day');
         } else if (isWeekend) {
           dayCell.classList.add('weekend');
@@ -1946,10 +2129,10 @@
         dayNumber.innerText = day;
         dayCell.appendChild(dayNumber);
 
-        if (examInfo) {
+        if (specialInfo) {
           const examTag = document.createElement('div');
           examTag.className = 'exam-text-label';
-          examTag.innerHTML = examInfo.name;
+          examTag.innerHTML = specialInfo.name;
           dayCell.appendChild(examTag);
         }
 
@@ -1996,19 +2179,19 @@
             ? '' 
             : `<span class="delete-btn" onclick="confirmDeleteAppointment('${evt.id}', event, '${infoStr}')">&times;</span>`;
 
-         if (isMobile) {
-  const shortPeriod = getShortPeriod(evt.period);
-  tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
-  
-  if (!isFaded) {
-    tag.addEventListener('click', function(e) {
-      if (e.target.classList.contains('delete-btn')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      showEventDetail(evt, infoStr); // 改為呼叫詳細資訊彈窗
-    });
-  }
-} else {
+          if (isMobile) {
+            const shortPeriod = getShortPeriod(evt.period);
+            tag.innerHTML = `<span class="event-text"><b>${shortPeriod}</b> ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
+            
+            if (!isFaded) {
+              tag.addEventListener('click', function(e) {
+                if (e.target.classList.contains('delete-btn')) return;
+                e.preventDefault();
+                e.stopPropagation();
+                showEventDetail(evt, infoStr);
+              });
+            }
+          } else {
             tag.innerHTML = `<span class="event-text">${evt.period} ${evt.teacher}-${evt.student}</span>${deleteBtnHtml}`;
             
             if (!isFaded) {
@@ -2029,8 +2212,8 @@
         dayCell.onclick = (e) => {
           if (e.target.closest('.event-tag')) return;
 
-          if (examInfo) {
-            const confirmRegister = confirm(`⚠️ 該日期為「${examInfo.name}」，確定要登記晤談預約嗎？`);
+          if (specialInfo) {
+            const confirmRegister = confirm(`⚠️ 該日期為「${specialInfo.name.replace(/<br>/g, ' / ')}」，確定要登記晤談預約嗎？`);
             if (!confirmRegister) return;
           }
           openModal(dateStr);
