@@ -348,10 +348,11 @@
       background-color: #cbd5e1 !important;
     }
 
+    /* 修改 2：月曆上放假或段考字體改為黑色 */
     .exam-text-label {
       font-size: 0.72rem;
       font-weight: bold;
-      color: #d8526d;
+      color: #000000;
       margin-bottom: 4px;
       line-height: 1.2;
     }
@@ -397,10 +398,10 @@
 
     .manage-card {
       background: #f8fafc;
-      padding: 10px;
+      padding: 6px 10px;
       border-radius: 6px;
       border: 1px solid #e2e8f0;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .manage-card-header {
@@ -412,9 +413,9 @@
     }
 
     .manage-card h3 {
-      margin-top: 0;
-      margin-bottom: 8px;
-      font-size: 0.88rem;
+      margin-top: 2px;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
       color: #0f766e;
     }
 
@@ -433,13 +434,13 @@
       gap: 4px;
       align-items: center;
       width: 100%;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .input-group input, .input-group select {
       flex: 1;
       min-width: 0;
-      padding: 5px 6px;
+      padding: 4px 6px;
       border: 1px solid #cbd5e1;
       border-radius: 4px;
       font-size: 0.8rem;
@@ -448,7 +449,7 @@
     .input-group button {
       flex-shrink: 0;
       width: auto;
-      padding: 5px 8px;
+      padding: 4px 8px;
       font-size: 0.8rem;
       white-space: nowrap;
     }
@@ -758,9 +759,10 @@
       padding-right: 4px;
     }
 
+    /* 修改 1：調降外框的高度與邊距 */
     .agoda-picker-trigger {
       width: 100%;
-      padding: 8px 10px;
+      padding: 4px 8px;
       background: #fff;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
@@ -768,7 +770,7 @@
       color: #334155;
       text-align: left;
       cursor: pointer;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -916,7 +918,7 @@
         <h3>段考/放假管理</h3>
         <button class="collapse-btn" id="btnToggleExamSec">▼</button>
       </div>
-      <div id="examManageContent" style="display: none; margin-top: 8px;">
+      <div id="examManageContent" style="display: none; margin-top: 6px;">
         <div class="input-group">
           <select id="examNameSelect" onchange="handleExamSelectChange(this)">
             <option value="第一次段考">第一次段考</option>
@@ -934,9 +936,9 @@
           <span style="font-size: 0.75rem; color: #0f766e; flex-shrink: 0;">選擇</span>
         </div>
 
-        <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="addExamDate()">新增項目</button>
+        <button class="btn-primary" style="width: 100%; margin-bottom: 6px;" onclick="addExamDate()">新增項目</button>
 
-        <div class="tag-list" id="examTagList" style="margin-top: 6px;"></div>
+        <div class="tag-list" id="examTagList" style="margin-top: 4px;"></div>
       </div>
     </div>
 
@@ -1975,10 +1977,11 @@
         dayNumber.innerText = day;
         dayCell.appendChild(dayNumber);
 
+        /* 修改 3：放假或段考文字加上 🎉 圖示 */
         if (specialInfo) {
           const examTag = document.createElement('div');
           examTag.className = 'exam-text-label';
-          examTag.innerHTML = specialInfo.name;
+          examTag.innerHTML = `🎉 ${specialInfo.name}`;
           dayCell.appendChild(examTag);
         }
 
