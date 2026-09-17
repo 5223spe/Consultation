@@ -340,33 +340,33 @@
     }
 
     .day-cell.exam-day {
-  background-color: #f1f5f9 !important; /* 原為 #e2e8f0 */
-  color: #64748b;                       /* 原為 #475569 */
-}
+      background-color: #f1f5f9 !important;
+      color: #64748b;
+    }
 
-.day-cell.exam-day:hover {
-  background-color: #e2e8f0 !important; /* 原為 #cbd5e1 */
-}
+    .day-cell.exam-day:hover {
+      background-color: #e2e8f0 !important;
+    }
 
     /* 補課/補班日期數字與下方標籤文字皆變為紅色 */
-.day-cell.make-up-day {
-  background-color: #ffffff !important;
-  color: #dc2626 !important;
-}
-.day-cell.make-up-day .exam-text-label {
-  color: #dc2626 !important; /* 讓標籤文字也變紅色 */
-}
-.day-cell.make-up-day:hover {
-  background-color: #f0f9ff !important;
-}
+    .day-cell.make-up-day {
+      background-color: #ffffff !important;
+      color: #dc2626 !important;
+    }
+    .day-cell.make-up-day .exam-text-label {
+      color: #dc2626 !important;
+    }
+    .day-cell.make-up-day:hover {
+      background-color: #f0f9ff !important;
+    }
 
     .exam-text-label {
-  font-size: 0.72rem;
-  font-weight: bold;
-  color: #475569; /* 原為 #000000，降為軟化字色 */
-  margin-bottom: 4px;
-  line-height: 1.2;
-}
+      font-size: 0.72rem;
+      font-weight: bold;
+      color: #64748b; /* 已改為 #64748b */
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
 
     .day-number {
       font-weight: bold;
@@ -1826,12 +1826,12 @@
 
     if (matchedItems.length > 0) {
       const formattedNames = matchedItems.map(item => {
-  // 當名稱包含「放假」或「補假」且尚未有 🎉 時，自動加上 🎉
-  if (item.rawName.includes('放假') || item.rawName.includes('補假')) {
-    return item.rawName.includes('🎉') ? item.rawName : `${item.rawName}🎉`;
-  }
-  return item.rawName;
-});
+        // 當名稱包含「放假」或「補假」且尚未有 🎉 時，自動加上 🎉
+        if (item.rawName.includes('放假') || item.rawName.includes('補假')) {
+          return item.rawName.includes('🎉') ? item.rawName : `${item.rawName}🎉`;
+        }
+        return item.rawName;
+      });
 
       const isMakeUp = matchedItems.some(item => item.rawName.includes('補課') || item.rawName.includes('補班'));
 
