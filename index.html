@@ -708,7 +708,8 @@
         display: inline;
       }
 
-      .event-tag .delete-btn { display: inline-block !important; }
+      /* 手機版隱藏標籤上的小 X */
+      .event-tag .delete-btn { display: none !important; }
       .manage-card { min-width: 100%; }
     }
 
@@ -1985,7 +1986,7 @@
                 if (e.target.classList.contains('delete-btn')) return;
                 e.preventDefault();
                 e.stopPropagation();
-                confirmDeleteAppointment(evt.id, e, infoStr);
+                showEventDetail(evt, infoStr); // 手機版改為跳出詳細資訊視窗
               });
             }
           } else {
