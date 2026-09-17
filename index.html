@@ -526,33 +526,33 @@
 
     .btn-semester:hover { background-color: #116165; }
 
-    /* 方案二：低飽和暗紅外框按鈕 */
     .btn-delete-outline {
-      background-color: transparent;
-      color: #c53030;
-      border: 2px solid #c53030;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 0.82rem;
-      font-weight: bold;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-      width: 100%;
-    }
+  background-color: #d8526d; /* 圖片對應的桃紅/粉紅色背景 */
+  color: #ffffff;            /* 純白文字 */
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 2px 5px rgba(216, 82, 109, 0.35); /* 鮮明陰影 */
+  transition: all 0.2s ease;
+  width: 100%;
+}
 
-    .btn-delete-outline:hover {
-      background-color: #fff5f5;
-      color: #9b2c2c;
-      border-color: #9b2c2c;
-    }
+.btn-delete-outline:hover {
+  background-color: #c4435d; /* 滑鼠懸停深色 */
+  box-shadow: 0 3px 7px rgba(216, 82, 109, 0.45);
+}
 
     .btn-delete-outline:active {
-      background-color: #fed7d7;
-    }
+  background-color: #b03850;
+  transform: translateY(1px);
+}
 
     .modal {
       display: none;
