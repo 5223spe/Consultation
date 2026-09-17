@@ -992,7 +992,7 @@
 </div>
 
 <script>
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyrWQ01iYgcWLePgllSTAgytbMJDipFNA4J8FJdHTO24hqSqrEhIo3gtWraI4JQRbY/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZUh-qdk4QkwrBdkK3vFRng6dgWOzJ4OOWfeozUkhFtSJg76cqAUUlgU6B9mICQkav/exec";
 
   let teachers = [];
   let students = [];
@@ -1814,8 +1814,10 @@
         renderCalendars();
       })
       .finally(() => {
-        isOperating = false;
-        startPolling();
+        setTimeout(() => {
+          isOperating = false;
+          startPolling();
+        }, 2500);
       });
     }
   }
@@ -1986,7 +1988,7 @@
                 if (e.target.classList.contains('delete-btn')) return;
                 e.preventDefault();
                 e.stopPropagation();
-                showEventDetail(evt, infoStr); // 手機版改為跳出詳細資訊視窗
+                showEventDetail(evt, infoStr);
               });
             }
           } else {
@@ -2131,8 +2133,10 @@
       renderCalendars();
     })
     .finally(() => {
-      isOperating = false;
-      startPolling();
+      setTimeout(() => {
+        isOperating = false;
+        startPolling();
+      }, 2500);
     });
   }
 
@@ -2205,8 +2209,10 @@
         console.error(err);
       })
       .finally(() => {
-        isOperating = false;
-        startPolling();
+        setTimeout(() => {
+          isOperating = false;
+          startPolling();
+        }, 2500);
       });
     }
   }
