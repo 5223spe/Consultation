@@ -348,7 +348,15 @@
       background-color: #cbd5e1 !important;
     }
 
-    /* 修改 2：月曆上放假或段考字體改為黑色 */
+    /* 補課/補班背景變為白色 */
+    .day-cell.make-up-day {
+      background-color: #ffffff !important;
+      color: #1e293b !important;
+    }
+    .day-cell.make-up-day:hover {
+      background-color: #f0f9ff !important;
+    }
+
     .exam-text-label {
       font-size: 0.72rem;
       font-weight: bold;
@@ -759,7 +767,6 @@
       padding-right: 4px;
     }
 
-    /* 修改 1：調降外框的高度與邊距 */
     .agoda-picker-trigger {
       width: 100%;
       padding: 4px 8px;
@@ -912,10 +919,10 @@
       <div class="tag-list" id="studentTagList"></div>
     </div>
 
-    <!-- 整合與修正：段考/放假管理 -->
+    <!-- 段考/放假/補課管理 -->
     <div class="manage-card">
       <div class="manage-card-header" onclick="toggleExamSection()">
-        <h3>段考/放假管理</h3>
+        <h3>段考/放假/補課管理</h3>
         <button class="collapse-btn" id="btnToggleExamSec">▼</button>
       </div>
       <div id="examManageContent" style="display: none; margin-top: 6px;">
@@ -927,6 +934,7 @@
             <option value="高三期末考">高三期末考</option>
             <option value="高一二期末考">高一二期末考</option>
             <option value="學校放假">學校放假</option>
+            <option value="補課/補班">補課/補班</option>
             <option value="custom">+ 自行輸入類別...</option>
           </select>
         </div>
@@ -1053,7 +1061,7 @@
 
   function handleExamSelectChange(selectElem) {
     if (selectElem.value === 'custom') {
-      const customName = prompt("請輸入自訂的類別或名稱（例如：校慶補假、高三模擬考）：");
+      const customName = prompt("請輸入自訂的類別或名稱（例如：校慶補假、高三模擬考、六日補課）：");
       if (customName && customName.trim() !== '') {
         const trimmed = customName.trim();
         let exists = false;
@@ -1774,11 +1782,12 @@
     });
   }
 
+  /* 調整特休日邏輯：依名稱加上 🎉 或呈現原始文字 */
   function getSpecialDayInfoForDate(targetDateStr) {
     const target = new Date(targetDateStr);
     target.setHours(0, 0, 0, 0);
 
-    let matchedNames = [];
+    let matchedItems = [];
 
     for (const item of examDates) {
       if (typeof item === 'object' && item !== null) {
@@ -1788,8 +1797,9 @@
         end.setHours(0, 0, 0, 0);
 
         if (target >= start && target <= end) {
-          if (!matchedNames.includes(item.name || "段考/放假")) {
-            matchedNames.push(item.name || "段考/放假");
+          const rawName = item.name || "段考/放假";
+          if (!matchedItems.some(i => i.rawName === rawName)) {
+            matchedItems.push({ rawName: rawName });
           }
         }
       } else if (typeof item === 'string') {
@@ -1800,16 +1810,33 @@
           start.setHours(0, 0, 0, 0);
           end.setHours(0, 0, 0, 0);
           if (target >= start && target <= end) {
-            if (!matchedNames.includes("段考/放假")) matchedNames.push("段考/放假");
+            if (!matchedItems.some(i => i.rawName === "段考/放假")) {
+              matchedItems.push({ rawName: "段考/放假" });
+            }
           }
         } else if (item === targetDateStr) {
-          if (!matchedNames.includes("段考/放假")) matchedNames.push("段考/放假");
+          if (!matchedItems.some(i => i.rawName === "段考/放假")) {
+            matchedItems.push({ rawName: "段考/放假" });
+          }
         }
       }
     }
 
-    if (matchedNames.length > 0) {
-      return { name: matchedNames.join('<br>') };
+    if (matchedItems.length > 0) {
+      const formattedNames = matchedItems.map(item => {
+        // 只有包含「放假」二字且未帶 🎉 者才在後方加上 🎉
+        if (item.rawName.includes('放假')) {
+          return item.rawName.includes('🎉') ? item.rawName : `${item.rawName}🎉`;
+        }
+        return item.rawName;
+      });
+
+      const isMakeUp = matchedItems.some(item => item.rawName.includes('補課') || item.rawName.includes('補班'));
+
+      return { 
+        name: formattedNames.join('<br>'),
+        isMakeUp: isMakeUp
+      };
     }
     return null;
   }
@@ -1966,7 +1993,10 @@
         const dayOfWeek = currentDayObj.getDay();
         const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
 
-        if (specialInfo) {
+        // 背景配色邏輯調整：若為補課/補班，優先設為白色底色
+        if (specialInfo && specialInfo.isMakeUp) {
+          dayCell.classList.add('make-up-day');
+        } else if (specialInfo) {
           dayCell.classList.add('exam-day');
         } else if (isWeekend) {
           dayCell.classList.add('weekend');
@@ -1977,11 +2007,10 @@
         dayNumber.innerText = day;
         dayCell.appendChild(dayNumber);
 
-        /* 修改 3：放假或段考文字加上 🎉 圖示 */
         if (specialInfo) {
           const examTag = document.createElement('div');
           examTag.className = 'exam-text-label';
-          examTag.innerHTML = `🎉 ${specialInfo.name}`;
+          examTag.innerHTML = specialInfo.name;
           dayCell.appendChild(examTag);
         }
 
@@ -2061,7 +2090,7 @@
         dayCell.onclick = (e) => {
           if (e.target.closest('.event-tag')) return;
 
-          if (specialInfo) {
+          if (specialInfo && !specialInfo.isMakeUp) {
             const confirmRegister = confirm(`⚠️ 該日期為「${specialInfo.name.replace(/<br>/g, ' / ')}」，確定要登記晤談預約嗎？`);
             if (!confirmRegister) return;
           }
