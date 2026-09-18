@@ -1015,7 +1015,7 @@
 </div>
 
 <script>
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwtiKeq6ihKLeVescC48ljH8Pvkir-9VfrwULTr3sIAEZl-DV2EuzxiakLsJEoeeUJ6/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxoFAqfU3trA4uV7Ntk1qSsClhBwD_RFEq9JBN7_RIeTvQ9xG5MVwjao-Jl_WMSND1u/exec";
 
   let teachers = [];
   let students = [];
@@ -2123,6 +2123,7 @@
     document.getElementById('eventModal').style.display = 'none';
   }
 
+  // 修正後的 saveEvent 函式
   function saveEvent() {
     const teacher = document.getElementById('teacherSelect').value;
     const period = document.getElementById('periodSelect').value;
@@ -2171,7 +2172,7 @@
       }
     }
 
-    lockOperation();
+    lockOperation(); // 啟用操作鎖定，阻擋自動輪詢覆蓋資料
 
     const tempId = "temp_" + Date.now();
     const eventData = {
@@ -2184,12 +2185,17 @@
 
     closeModal();
 
+    // 1. 先更新前端本地畫面與快取
     rawAppointments.push(eventData);
     saveToLocalCache();
     renderCalendars();
 
+    // 2. 發送 POST 請求至 GAS (相容跨域模式)
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
       body: JSON.stringify({
         action: 'addAppointment',
         eventData: eventData
@@ -2197,9 +2203,13 @@
     })
     .then(res => res.json())
     .then(result => {
-      if (result && result.id) {
-        eventData.id = result.id;
+      if (result && result.success) {
+        if (result.id) {
+          eventData.id = String(result.id);
+        }
         saveToLocalCache();
+      } else {
+        throw new Error(result ? result.message : "寫入失敗");
       }
     })
     .catch(err => {
@@ -2209,7 +2219,7 @@
       renderCalendars();
     })
     .finally(() => {
-      unlockOperationWithDelay(8000);
+      unlockOperationWithDelay(10000); // 解鎖延遲設定為 10 秒
     });
   }
 
