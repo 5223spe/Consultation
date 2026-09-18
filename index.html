@@ -5,21 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>教師學生晤談預約月曆</title>
 
-  <!-- 引入 PWA 清單檔案 -->
   <link rel="manifest" href="manifest.json">
-
-  <!-- 傳統圖示備用設定 -->
   <link rel="apple-touch-icon" href="1234.png">
   <link rel="icon" type="image/png" href="1234.png">
 
-  <!-- 移動端全螢幕 App 設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="晤談預約">
 
-  <link rel="icon" type="image/png" href="./1234.png">
-  <link rel="apple-touch-icon" href="./1234.png">
-  
   <style>
     :root {
       --primary-color: #0f766e;
@@ -348,7 +341,6 @@
       background-color: #e2e8f0 !important;
     }
 
-    /* 補課/補班日期數字與下方標籤文字皆變為紅色 */
     .day-cell.make-up-day {
       background-color: #ffffff !important;
       color: #dc2626 !important;
@@ -363,7 +355,7 @@
     .exam-text-label {
       font-size: 0.72rem;
       font-weight: bold;
-      color: #64748b; /* 已改為 #64748b */
+      color: #64748b;
       margin-bottom: 4px;
       line-height: 1.2;
     }
@@ -922,7 +914,6 @@
       <div class="tag-list" id="studentTagList"></div>
     </div>
 
-    <!-- 段考/放假/補課管理 -->
     <div class="manage-card">
       <div class="manage-card-header" onclick="toggleExamSection()">
         <h3>段考/放假/補課管理</h3>
@@ -986,14 +977,11 @@
   </div>
 </div>
 
-<!-- 晤談詳細資訊彈出視窗 -->
 <div class="modal" id="detailModal">
   <div class="modal-content" style="max-width: 380px;">
     <div class="modal-header" style="color: #0f766e; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">晤談詳細資訊</div>
     
-    <div style="margin: 15px 0; font-size: 0.95rem; line-height: 1.8;" id="detailModalBody">
-      <!-- 動態填入內容 -->
-    </div>
+    <div style="margin: 15px 0; font-size: 0.95rem; line-height: 1.8;" id="detailModalBody"></div>
 
     <div class="btn-group" style="justify-content: space-between; width: 100%;">
       <button class="btn-delete-outline" id="btnDetailDelete" style="width: auto;">🗑️ 刪除此紀錄</button>
@@ -1052,6 +1040,7 @@
   let currentSemester = 0;
   let pollTimer = null;
   let isOperating = false;
+  let operationTimer = null;
 
   let pickerTarget = 'exam';
   let agodaStart = null;
@@ -1060,6 +1049,18 @@
   let agodaViewMonth = new Date().getMonth();
 
   let currentDetailEvent = null;
+
+  function lockOperation() {
+    isOperating = true;
+    if (operationTimer) clearTimeout(operationTimer);
+  }
+
+  function unlockOperationWithDelay(delay = 6000) {
+    if (operationTimer) clearTimeout(operationTimer);
+    operationTimer = setTimeout(() => {
+      isOperating = false;
+    }, delay);
+  }
 
   function handleExamSelectChange(selectElem) {
     if (selectElem.value === 'custom') {
@@ -1784,7 +1785,6 @@
     });
   }
 
-  /* 調整特休日邏輯：依名稱加上 🎉 或呈現原始文字 */
   function getSpecialDayInfoForDate(targetDateStr) {
     const target = new Date(targetDateStr);
     target.setHours(0, 0, 0, 0);
@@ -1826,7 +1826,6 @@
 
     if (matchedItems.length > 0) {
       const formattedNames = matchedItems.map(item => {
-        // 當名稱包含「放假」或「補假」且尚未有 🎉 時，自動加上 🎉
         if (item.rawName.includes('放假') || item.rawName.includes('補假')) {
           return item.rawName.includes('🎉') ? item.rawName : `${item.rawName}🎉`;
         }
@@ -1859,14 +1858,14 @@
     });
   }
 
+  // 修正的核心：確定刪除並延遲自動輪詢覆蓋
   function confirmDeleteAppointment(id, event, infoStr) {
     if (event) event.stopPropagation();
     if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
-      const deletedIndex = rawAppointments.findIndex(evt => evt.id === id);
+      const deletedIndex = rawAppointments.findIndex(evt => evt.id === String(id));
       if (deletedIndex === -1) return;
 
-      isOperating = true;
-      stopPolling();
+      lockOperation(); // 立即啟用操作鎖定
 
       const backupEvent = rawAppointments[deletedIndex];
       rawAppointments.splice(deletedIndex, 1);
@@ -1877,13 +1876,13 @@
         method: 'POST',
         body: JSON.stringify({
           action: 'deleteAppointment',
-          id: id
+          id: String(id)
         })
       })
       .then(res => res.json())
       .then(res => {
         if (!res || !res.success) {
-          throw new Error("刪除失敗");
+          throw new Error(res ? res.message : "刪除失敗");
         }
       })
       .catch(err => {
@@ -1893,8 +1892,7 @@
         renderCalendars();
       })
       .finally(() => {
-        isOperating = false;
-        startPolling();
+        unlockOperationWithDelay(8000); // 延長解鎖時間，給予雲端寫入快取緩衝
       });
     }
   }
@@ -1995,7 +1993,6 @@
         const dayOfWeek = currentDayObj.getDay();
         const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
 
-        // 背景配色邏輯調整：若為補課/補班，優先設為白色底色
         if (specialInfo && specialInfo.isMakeUp) {
           dayCell.classList.add('make-up-day');
         } else if (specialInfo) {
@@ -2174,8 +2171,7 @@
       }
     }
 
-    isOperating = true;
-    stopPolling();
+    lockOperation();
 
     const tempId = "temp_" + Date.now();
     const eventData = {
@@ -2213,8 +2209,7 @@
       renderCalendars();
     })
     .finally(() => {
-      isOperating = false;
-      startPolling();
+      unlockOperationWithDelay(8000);
     });
   }
 
@@ -2242,8 +2237,7 @@
 
     if (confirm(`⚠️ 警告：這將會【清除月曆上「${semesterText}」的所有晤談預約紀錄】！（另一學期的紀錄將會保留），確定要清空嗎？`)) {
       showLoading(true);
-      isOperating = true;
-      stopPolling();
+      lockOperation();
       
       const currentMonths = getMonthRange();
       
@@ -2258,8 +2252,7 @@
 
       if (targetEvents.length === 0) {
         showLoading(false);
-        isOperating = false;
-        startPolling();
+        unlockOperationWithDelay(0);
         alert(`當前（${semesterText}）沒有任何晤談紀錄可供刪除。`);
         return;
       }
@@ -2287,8 +2280,7 @@
         console.error(err);
       })
       .finally(() => {
-        isOperating = false;
-        startPolling();
+        unlockOperationWithDelay(8000);
       });
     }
   }
