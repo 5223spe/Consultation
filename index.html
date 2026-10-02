@@ -1241,50 +1241,56 @@
   }
 
   window.onload = function() {
-    const currentMonth = new Date().getMonth();
-    currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
-    
-    const hasCache = loadFromLocalCache();
-    if (hasCache) {
-      updateAllUI();
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-11
+  
+  // 判斷當前月份屬於哪個學期（2月~7月為下學期，8月~隔年1月為上學期）
+  currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
+  
+  const hasCache = loadFromLocalCache();
+  if (hasCache) {
+    updateAllUI();
+    scrollToCurrentMonth(); // 載入後自動捲動至當月
+  } else {
+    showLoading(true);
+  }
+
+  fetchCloudData();
+  startPolling();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopPolling();
     } else {
-      showLoading(true);
-    }
-
-    fetchCloudData();
-    startPolling();
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        stopPolling();
-      } else {
-        silentFetchData();
+      silentFetchData();
         startPolling();
       }
     });
-  };
-
+};
+  
   function fetchCloudData() {
-    fetch(`${GAS_WEB_APP_URL}?action=getAll`)
-      .then(res => {
-        if (!res.ok) throw new Error("網路連線或 API 回應異常");
-        return res.json();
-      })
-      .then(data => {
-        showLoading(false);
-        teachers = data.lists ? (data.lists.teachers || []) : [];
-        students = data.lists ? (data.lists.students || []) : [];
-        examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
-        rawAppointments = data.appointments || [];
-        saveToLocalCache();
-        updateAllUI();
-      })
-      .catch(err => {
-        showLoading(false);
-        console.error(err);
-        updateAllUI();
-      });
-  }
+  fetch(`${GAS_WEB_APP_URL}?action=getAll`)
+    .then(res => {
+      if (!res.ok) throw new Error("網路連線或 API 回應異常");
+      return res.json();
+    })
+    .then(data => {
+      showLoading(false);
+      teachers = data.lists ? (data.lists.teachers || []) : [];
+      students = data.lists ? (data.lists.students || []) : [];
+      examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
+      rawAppointments = data.appointments || [];
+      saveToLocalCache();
+      updateAllUI();
+      scrollToCurrentMonth(); // 新增這行：同步完資料後滑動至當月
+    })
+    .catch(err => {
+      showLoading(false);
+      console.error(err);
+      updateAllUI();
+      scrollToCurrentMonth();
+    });
+}
 
   function getColorForEntity(name, type) {
     if (name === '家臻') return basePalette[1];
@@ -2294,6 +2300,23 @@
       });
     }
   }
+
+  function scrollToCurrentMonth() {
+  setTimeout(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const targetTitle = `${currentYear} 年 ${currentMonth} 月`;
+
+    const titles = document.querySelectorAll('.month-title');
+    for (let title of titles) {
+      if (title.innerText.trim() === targetTitle) {
+        title.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      }
+    }
+  }, 300); // 稍微延遲以確保 DOM 已渲染完畢
+}
 </script>
 
 </body>
