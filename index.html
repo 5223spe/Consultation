@@ -1015,7 +1015,7 @@
 </div>
 
 <script>
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwkZDxUGYpM673uAvUlTlhE5-i6bFPPQntZ0mb3WYrlP9RHwbzGyDFtZMaXGG7ACqSA/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwWeA9dwJ3Ueg6dPmZyXNHVJAcwGk54bEJGf3SvSvKwhgQUToYPiPxhrCAUF-L29E3G/exec";
 
   let teachers = [];
   let students = [];
@@ -1049,6 +1049,60 @@
   let agodaViewMonth = new Date().getMonth();
 
   let currentDetailEvent = null;
+
+  // 離線佇列機制
+  function getOfflineQueue() {
+    try {
+      return JSON.parse(localStorage.getItem('offline_queue') || '[]');
+    } catch(e) { return []; }
+  }
+
+  function saveOfflineQueue(queue) {
+    try {
+      localStorage.setItem('offline_queue', JSON.stringify(queue));
+    } catch(e) {}
+  }
+
+  function addToOfflineQueue(task) {
+    const queue = getOfflineQueue();
+    queue.push(task);
+    saveOfflineQueue(queue);
+  }
+
+  function processOfflineQueue() {
+    if (!navigator.onLine) return;
+    const queue = getOfflineQueue();
+    if (queue.length === 0) return;
+
+    lockOperation();
+    const task = queue[0];
+
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(task.payload)
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res && res.success) {
+        queue.shift();
+        saveOfflineQueue(queue);
+        if (queue.length > 0) {
+          processOfflineQueue();
+        } else {
+          unlockOperationWithDelay(3000);
+          silentFetchData();
+        }
+      } else {
+        unlockOperationWithDelay(2000);
+      }
+    })
+    .catch(err => {
+      unlockOperationWithDelay(2000);
+    });
+  }
+
+  window.addEventListener('online', processOfflineQueue);
 
   function lockOperation() {
     isOperating = true;
@@ -1241,56 +1295,59 @@
   }
 
   window.onload = function() {
-  const now = new Date();
-  const currentMonth = now.getMonth(); // 0-11
-  
-  // 判斷當前月份屬於哪個學期（2月~7月為下學期，8月~隔年1月為上學期）
-  currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
-  
-  const hasCache = loadFromLocalCache();
-  if (hasCache) {
-    updateAllUI();
-    scrollToCurrentMonth(); // 載入後自動捲動至當月
-  } else {
-    showLoading(true);
-  }
-
-  fetchCloudData();
-  startPolling();
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      stopPolling();
-    } else {
-      silentFetchData();
-        startPolling();
-      }
-    });
-};
-  
-  function fetchCloudData() {
-  fetch(`${GAS_WEB_APP_URL}?action=getAll`)
-    .then(res => {
-      if (!res.ok) throw new Error("網路連線或 API 回應異常");
-      return res.json();
-    })
-    .then(data => {
-      showLoading(false);
-      teachers = data.lists ? (data.lists.teachers || []) : [];
-      students = data.lists ? (data.lists.students || []) : [];
-      examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
-      rawAppointments = data.appointments || [];
-      saveToLocalCache();
-      updateAllUI();
-      scrollToCurrentMonth(); // 新增這行：同步完資料後滑動至當月
-    })
-    .catch(err => {
-      showLoading(false);
-      console.error(err);
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    
+    currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
+    
+    const hasCache = loadFromLocalCache();
+    if (hasCache) {
       updateAllUI();
       scrollToCurrentMonth();
+    } else {
+      showLoading(true);
+    }
+
+    fetchCloudData();
+    startPolling();
+
+    // 啟動時檢查並補發離線佇列
+    processOfflineQueue();
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        silentFetchData();
+        startPolling();
+        processOfflineQueue();
+      }
     });
-}
+  };
+  
+  function fetchCloudData() {
+    fetch(`${GAS_WEB_APP_URL}?action=getAll`)
+      .then(res => {
+        if (!res.ok) throw new Error("網路連線或 API 回應異常");
+        return res.json();
+      })
+      .then(data => {
+        showLoading(false);
+        teachers = data.lists ? (data.lists.teachers || []) : [];
+        students = data.lists ? (data.lists.students || []) : [];
+        examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
+        rawAppointments = data.appointments || [];
+        saveToLocalCache();
+        updateAllUI();
+        scrollToCurrentMonth();
+      })
+      .catch(err => {
+        showLoading(false);
+        console.error(err);
+        updateAllUI();
+        scrollToCurrentMonth();
+      });
+  }
 
   function getColorForEntity(name, type) {
     if (name === '家臻') return basePalette[1];
@@ -1864,26 +1921,34 @@
     });
   }
 
-  // 修正的核心：確定刪除並延遲自動輪詢覆蓋
   function confirmDeleteAppointment(id, event, infoStr) {
     if (event) event.stopPropagation();
     if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
       const deletedIndex = rawAppointments.findIndex(evt => evt.id === String(id));
       if (deletedIndex === -1) return;
 
-      lockOperation(); // 立即啟用操作鎖定
+      lockOperation();
 
       const backupEvent = rawAppointments[deletedIndex];
       rawAppointments.splice(deletedIndex, 1);
       saveToLocalCache();
       renderCalendars();
 
+      const payload = {
+        action: 'deleteAppointment',
+        id: String(id)
+      };
+
+      if (!navigator.onLine) {
+        addToOfflineQueue({ payload: payload });
+        unlockOperationWithDelay(2000);
+        return;
+      }
+
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        body: JSON.stringify({
-          action: 'deleteAppointment',
-          id: String(id)
-        })
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
       })
       .then(res => res.json())
       .then(res => {
@@ -1892,13 +1957,10 @@
         }
       })
       .catch(err => {
-        alert("刪除失敗，已恢復資料！");
-        rawAppointments.splice(deletedIndex, 0, backupEvent);
-        saveToLocalCache();
-        renderCalendars();
+        addToOfflineQueue({ payload: payload });
       })
       .finally(() => {
-        unlockOperationWithDelay(8000); // 延長解鎖時間，給予雲端寫入快取緩衝
+        unlockOperationWithDelay(10000);
       });
     }
   }
@@ -2129,7 +2191,6 @@
     document.getElementById('eventModal').style.display = 'none';
   }
 
-  // 修正後的 saveEvent 函式
   function saveEvent() {
     const teacher = document.getElementById('teacherSelect').value;
     const period = document.getElementById('periodSelect').value;
@@ -2178,7 +2239,7 @@
       }
     }
 
-    lockOperation(); // 啟用操作鎖定，阻擋自動輪詢覆蓋資料
+    lockOperation();
 
     const tempId = "temp_" + Date.now();
     const eventData = {
@@ -2191,21 +2252,25 @@
 
     closeModal();
 
-    // 1. 先更新前端本地畫面與快取
     rawAppointments.push(eventData);
     saveToLocalCache();
     renderCalendars();
 
-    // 2. 發送 POST 請求至 GAS (相容跨域模式)
+    const payload = {
+      action: 'addAppointment',
+      eventData: eventData
+    };
+
+    if (!navigator.onLine) {
+      addToOfflineQueue({ payload: payload });
+      unlockOperationWithDelay(2000);
+      return;
+    }
+
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8'
-      },
-      body: JSON.stringify({
-        action: 'addAppointment',
-        eventData: eventData
-      })
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(result => {
@@ -2219,13 +2284,10 @@
       }
     })
     .catch(err => {
-      alert("新增失敗，已移除該筆預約！");
-      rawAppointments = rawAppointments.filter(evt => evt.id !== tempId);
-      saveToLocalCache();
-      renderCalendars();
+      addToOfflineQueue({ payload: payload });
     })
     .finally(() => {
-      unlockOperationWithDelay(10000); // 解鎖延遲設定為 10 秒
+      unlockOperationWithDelay(10000);
     });
   }
 
@@ -2280,6 +2342,7 @@
 
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'deleteAppointmentsBatch',
           ids: targetIds
@@ -2302,21 +2365,21 @@
   }
 
   function scrollToCurrentMonth() {
-  setTimeout(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    const targetTitle = `${currentYear} 年 ${currentMonth} 月`;
+    setTimeout(() => {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      const targetTitle = `${currentYear} 年 ${currentMonth} 月`;
 
-    const titles = document.querySelectorAll('.month-title');
-    for (let title of titles) {
-      if (title.innerText.trim() === targetTitle) {
-        title.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        break;
+      const titles = document.querySelectorAll('.month-title');
+      for (let title of titles) {
+        if (title.innerText.trim() === targetTitle) {
+          title.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        }
       }
-    }
-  }, 300); // 稍微延遲以確保 DOM 已渲染完畢
-}
+    }, 300);
+  }
 </script>
 
 </body>
