@@ -1921,49 +1921,48 @@
     });
   }
 
-  function confirmDeleteAppointment(id, event, infoStr) {
-    if (event) event.stopPropagation();
-    if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
-      const deletedIndex = rawAppointments.findIndex(evt => evt.id === String(id));
-      if (deletedIndex === -1) return;
+  // 修正：點擊網頁垃圾桶時，0 秒瞬間樂觀更新，不被網路判斷阻塞
+function confirmDeleteAppointment(id, event, infoStr) {
+  if (event) event.stopPropagation();
+  if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
+    const deletedIndex = rawAppointments.findIndex(evt => evt.id === String(id));
+    if (deletedIndex === -1) return;
 
-      lockOperation();
+    lockOperation(); // 暫停背景輪詢，防止覆蓋
 
-      const backupEvent = rawAppointments[deletedIndex];
-      rawAppointments.splice(deletedIndex, 1);
-      saveToLocalCache();
-      renderCalendars();
+    const backupEvent = rawAppointments[deletedIndex];
+    
+    // 關鍵！先刪除本地陣列、更新快取、重新繪製畫面 (達到 0 秒瞬間消失)
+    rawAppointments.splice(deletedIndex, 1);
+    saveToLocalCache();
+    renderCalendars();
 
-      const payload = {
-        action: 'deleteAppointment',
-        id: String(id)
-      };
+    const payload = {
+      action: 'deleteAppointment',
+      id: String(id)
+    };
 
-      if (!navigator.onLine) {
-        addToOfflineQueue({ payload: payload });
-        unlockOperationWithDelay(2000);
-        return;
+    // 發送刪除請求至後端
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (!res || !res.success) {
+        throw new Error(res ? res.message : "刪除失敗");
       }
-
-      fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(res => {
-        if (!res || !res.success) {
-          throw new Error(res ? res.message : "刪除失敗");
-        }
-      })
-      .catch(err => {
-        addToOfflineQueue({ payload: payload });
-      })
-      .finally(() => {
-        unlockOperationWithDelay(10000);
-      });
-    }
+    })
+    .catch(err => {
+      console.error("雲端刪除失敗，加入離線佇列", err);
+      addToOfflineQueue({ payload: payload });
+    })
+    .finally(() => {
+      unlockOperationWithDelay(6000); // 緩衝後解鎖背景輪詢
+    });
   }
+}
 
   function updateAllUI() {
     renderManagementTags();
