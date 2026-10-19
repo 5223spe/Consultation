@@ -1015,7 +1015,7 @@
 </div>
 
 <script>
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxoFAqfU3trA4uV7Ntk1qSsClhBwD_RFEq9JBN7_RIeTvQ9xG5MVwjao-Jl_WMSND1u/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyWjPDJIwjMV6oWSAVfrYyByj3Gd1TRu-Y7sg7I60uw6WGIXsYVNeTRd_afC86DcysL/exec";
 
   let teachers = [];
   let students = [];
@@ -1055,7 +1055,7 @@
     if (operationTimer) clearTimeout(operationTimer);
   }
 
-  function unlockOperationWithDelay(delay = 3000) {
+  function unlockOperationWithDelay(delay = 6000) {
     if (operationTimer) clearTimeout(operationTimer);
     operationTimer = setTimeout(() => {
       isOperating = false;
@@ -1202,14 +1202,13 @@
     );
   }
 
-  // 關鍵修正：確保背景自動抓取不受長鎖定限制，隨時接受 Google 日曆的刪除同步結果
   function silentFetchData() {
-    if (document.hidden) return;
+    if (document.hidden || isOperating) return;
 
     fetch(`${GAS_WEB_APP_URL}?action=getAll`)
       .then(res => res.json())
       .then(data => {
-        if (data) {
+        if (data && !isOperating) {
           const newTeachers = data.lists ? (data.lists.teachers || []) : [];
           const newStudents = data.lists ? (data.lists.students || []) : [];
           const newExamDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
@@ -1228,10 +1227,9 @@
       .catch(err => console.error("背景自動同步失敗：", err));
   }
 
-  // 關鍵修正：將輪詢時間調為 2 秒 (2000ms)，實現 Google 日曆刪除後的極速秒級更新
   function startPolling() {
     if (!pollTimer) {
-      pollTimer = setInterval(silentFetchData, 2000);
+      pollTimer = setInterval(silentFetchData, 30000);
     }
   }
 
@@ -1243,55 +1241,56 @@
   }
 
   window.onload = function() {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    
-    currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
-    
-    const hasCache = loadFromLocalCache();
-    if (hasCache) {
-      updateAllUI();
-      scrollToCurrentMonth();
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-11
+  
+  // 判斷當前月份屬於哪個學期（2月~7月為下學期，8月~隔年1月為上學期）
+  currentSemester = (currentMonth >= 1 && currentMonth <= 6) ? 2 : 1;
+  
+  const hasCache = loadFromLocalCache();
+  if (hasCache) {
+    updateAllUI();
+    scrollToCurrentMonth(); // 載入後自動捲動至當月
+  } else {
+    showLoading(true);
+  }
+
+  fetchCloudData();
+  startPolling();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopPolling();
     } else {
-      showLoading(true);
-    }
-
-    fetchCloudData();
-    startPolling();
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        stopPolling();
-      } else {
-        silentFetchData();
+      silentFetchData();
         startPolling();
       }
     });
-  };
+};
   
   function fetchCloudData() {
-    fetch(`${GAS_WEB_APP_URL}?action=getAll`)
-      .then(res => {
-        if (!res.ok) throw new Error("網路連線或 API 回應異常");
-        return res.json();
-      })
-      .then(data => {
-        showLoading(false);
-        teachers = data.lists ? (data.lists.teachers || []) : [];
-        students = data.lists ? (data.lists.students || []) : [];
-        examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
-        rawAppointments = data.appointments || [];
-        saveToLocalCache();
-        updateAllUI();
-        scrollToCurrentMonth();
-      })
-      .catch(err => {
-        showLoading(false);
-        console.error(err);
-        updateAllUI();
-        scrollToCurrentMonth();
-      });
-  }
+  fetch(`${GAS_WEB_APP_URL}?action=getAll`)
+    .then(res => {
+      if (!res.ok) throw new Error("網路連線或 API 回應異常");
+      return res.json();
+    })
+    .then(data => {
+      showLoading(false);
+      teachers = data.lists ? (data.lists.teachers || []) : [];
+      students = data.lists ? (data.lists.students || []) : [];
+      examDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
+      rawAppointments = data.appointments || [];
+      saveToLocalCache();
+      updateAllUI();
+      scrollToCurrentMonth(); // 新增這行：同步完資料後滑動至當月
+    })
+    .catch(err => {
+      showLoading(false);
+      console.error(err);
+      updateAllUI();
+      scrollToCurrentMonth();
+    });
+}
 
   function getColorForEntity(name, type) {
     if (name === '家臻') return basePalette[1];
@@ -1865,31 +1864,25 @@
     });
   }
 
-  // 關鍵修正：相容手機版與視窗刪除，0 秒樂觀更新
+  // 修正的核心：確定刪除並延遲自動輪詢覆蓋
   function confirmDeleteAppointment(id, event, infoStr) {
-    if (event && event.stopPropagation) event.stopPropagation();
-    
+    if (event) event.stopPropagation();
     if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
-      const targetIdStr = String(id);
-      const deletedIndex = rawAppointments.findIndex(evt => String(evt.id) === targetIdStr);
+      const deletedIndex = rawAppointments.findIndex(evt => evt.id === String(id));
       if (deletedIndex === -1) return;
 
-      lockOperation(); // 暫時鎖定手動寫入衝突
+      lockOperation(); // 立即啟用操作鎖定
 
       const backupEvent = rawAppointments[deletedIndex];
-      
-      // 1. 0 秒瞬間刪除本地畫面
       rawAppointments.splice(deletedIndex, 1);
       saveToLocalCache();
       renderCalendars();
 
-      // 2. 發送刪除請求至雲端
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'deleteAppointment',
-          id: targetIdStr
+          id: String(id)
         })
       })
       .then(res => res.json())
@@ -1905,7 +1898,7 @@
         renderCalendars();
       })
       .finally(() => {
-        unlockOperationWithDelay(3000);
+        unlockOperationWithDelay(8000); // 延長解鎖時間，給予雲端寫入快取緩衝
       });
     }
   }
@@ -2136,6 +2129,7 @@
     document.getElementById('eventModal').style.display = 'none';
   }
 
+  // 修正後的 saveEvent 函式
   function saveEvent() {
     const teacher = document.getElementById('teacherSelect').value;
     const period = document.getElementById('periodSelect').value;
@@ -2184,7 +2178,7 @@
       }
     }
 
-    lockOperation();
+    lockOperation(); // 啟用操作鎖定，阻擋自動輪詢覆蓋資料
 
     const tempId = "temp_" + Date.now();
     const eventData = {
@@ -2197,10 +2191,12 @@
 
     closeModal();
 
+    // 1. 先更新前端本地畫面與快取
     rawAppointments.push(eventData);
     saveToLocalCache();
     renderCalendars();
 
+    // 2. 發送 POST 請求至 GAS (相容跨域模式)
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
       headers: {
@@ -2229,7 +2225,7 @@
       renderCalendars();
     })
     .finally(() => {
-      unlockOperationWithDelay(3000);
+      unlockOperationWithDelay(10000); // 解鎖延遲設定為 10 秒
     });
   }
 
@@ -2300,27 +2296,27 @@
         console.error(err);
       })
       .finally(() => {
-        unlockOperationWithDelay(3000);
+        unlockOperationWithDelay(8000);
       });
     }
   }
 
   function scrollToCurrentMonth() {
-    setTimeout(() => {
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-      const targetTitle = `${currentYear} 年 ${currentMonth} 月`;
+  setTimeout(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const targetTitle = `${currentYear} 年 ${currentMonth} 月`;
 
-      const titles = document.querySelectorAll('.month-title');
-      for (let title of titles) {
-        if (title.innerText.trim() === targetTitle) {
-          title.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          break;
-        }
+    const titles = document.querySelectorAll('.month-title');
+    for (let title of titles) {
+      if (title.innerText.trim() === targetTitle) {
+        title.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
       }
-    }, 300);
-  }
+    }
+  }, 300); // 稍微延遲以確保 DOM 已渲染完畢
+}
 </script>
 
 </body>
