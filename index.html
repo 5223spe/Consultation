@@ -1015,7 +1015,7 @@
 </div>
 
 <script>
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyv_TPtNn3c6rRJ3eVAUmhgLj91VwpIzvv5jX_tfl8qS_VghGH8Q2kWsM19VO8Sw8O0/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxoFAqfU3trA4uV7Ntk1qSsClhBwD_RFEq9JBN7_RIeTvQ9xG5MVwjao-Jl_WMSND1u/exec";
 
   let teachers = [];
   let students = [];
@@ -1050,66 +1050,12 @@
 
   let currentDetailEvent = null;
 
-  // 離線佇列機制
-  function getOfflineQueue() {
-    try {
-      return JSON.parse(localStorage.getItem('offline_queue') || '[]');
-    } catch(e) { return []; }
-  }
-
-  function saveOfflineQueue(queue) {
-    try {
-      localStorage.setItem('offline_queue', JSON.stringify(queue));
-    } catch(e) {}
-  }
-
-  function addToOfflineQueue(task) {
-    const queue = getOfflineQueue();
-    queue.push(task);
-    saveOfflineQueue(queue);
-  }
-
-  function processOfflineQueue() {
-    if (!navigator.onLine) return;
-    const queue = getOfflineQueue();
-    if (queue.length === 0) return;
-
-    lockOperation();
-    const task = queue[0];
-
-    fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(task.payload)
-    })
-    .then(res => res.json())
-    .then(res => {
-      if (res && res.success) {
-        queue.shift();
-        saveOfflineQueue(queue);
-        if (queue.length > 0) {
-          processOfflineQueue();
-        } else {
-          unlockOperationWithDelay(3000);
-          silentFetchData();
-        }
-      } else {
-        unlockOperationWithDelay(2000);
-      }
-    })
-    .catch(err => {
-      unlockOperationWithDelay(2000);
-    });
-  }
-
-  window.addEventListener('online', processOfflineQueue);
-
   function lockOperation() {
     isOperating = true;
     if (operationTimer) clearTimeout(operationTimer);
   }
 
-  function unlockOperationWithDelay(delay = 6000) {
+  function unlockOperationWithDelay(delay = 3000) {
     if (operationTimer) clearTimeout(operationTimer);
     operationTimer = setTimeout(() => {
       isOperating = false;
@@ -1256,13 +1202,14 @@
     );
   }
 
+  // 關鍵修正：確保背景自動抓取不受長鎖定限制，隨時接受 Google 日曆的刪除同步結果
   function silentFetchData() {
-    if (document.hidden || isOperating) return;
+    if (document.hidden) return;
 
     fetch(`${GAS_WEB_APP_URL}?action=getAll`)
       .then(res => res.json())
       .then(data => {
-        if (data && !isOperating) {
+        if (data) {
           const newTeachers = data.lists ? (data.lists.teachers || []) : [];
           const newStudents = data.lists ? (data.lists.students || []) : [];
           const newExamDates = data.examDates || (data.lists ? data.lists.examDates || [] : []);
@@ -1281,9 +1228,10 @@
       .catch(err => console.error("背景自動同步失敗：", err));
   }
 
+  // 關鍵修正：將輪詢時間調為 2 秒 (2000ms)，實現 Google 日曆刪除後的極速秒級更新
   function startPolling() {
     if (!pollTimer) {
-      pollTimer = setInterval(silentFetchData, 5000);
+      pollTimer = setInterval(silentFetchData, 2000);
     }
   }
 
@@ -1311,16 +1259,12 @@
     fetchCloudData();
     startPolling();
 
-    // 啟動時檢查並補發離線佇列
-    processOfflineQueue();
-
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         stopPolling();
       } else {
         silentFetchData();
         startPolling();
-        processOfflineQueue();
       }
     });
   };
@@ -1921,48 +1865,50 @@
     });
   }
 
-  // 修正：點擊網頁垃圾桶時，0 秒瞬間樂觀更新，不被網路判斷阻塞
-function confirmDeleteAppointment(id, event, infoStr) {
-  if (event) event.stopPropagation();
-  if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
-    const deletedIndex = rawAppointments.findIndex(evt => evt.id === String(id));
-    if (deletedIndex === -1) return;
-
-    lockOperation(); // 暫停背景輪詢，防止覆蓋
-
-    const backupEvent = rawAppointments[deletedIndex];
+  // 關鍵修正：相容手機版與視窗刪除，0 秒樂觀更新
+  function confirmDeleteAppointment(id, event, infoStr) {
+    if (event && event.stopPropagation) event.stopPropagation();
     
-    // 關鍵！先刪除本地陣列、更新快取、重新繪製畫面 (達到 0 秒瞬間消失)
-    rawAppointments.splice(deletedIndex, 1);
-    saveToLocalCache();
-    renderCalendars();
+    if (confirm(`確定要刪除這筆晤談紀錄嗎？\n\n【${infoStr}】`)) {
+      const targetIdStr = String(id);
+      const deletedIndex = rawAppointments.findIndex(evt => String(evt.id) === targetIdStr);
+      if (deletedIndex === -1) return;
 
-    const payload = {
-      action: 'deleteAppointment',
-      id: String(id)
-    };
+      lockOperation(); // 暫時鎖定手動寫入衝突
 
-    // 發送刪除請求至後端
-    fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(res => {
-      if (!res || !res.success) {
-        throw new Error(res ? res.message : "刪除失敗");
-      }
-    })
-    .catch(err => {
-      console.error("雲端刪除失敗，加入離線佇列", err);
-      addToOfflineQueue({ payload: payload });
-    })
-    .finally(() => {
-      unlockOperationWithDelay(6000); // 緩衝後解鎖背景輪詢
-    });
+      const backupEvent = rawAppointments[deletedIndex];
+      
+      // 1. 0 秒瞬間刪除本地畫面
+      rawAppointments.splice(deletedIndex, 1);
+      saveToLocalCache();
+      renderCalendars();
+
+      // 2. 發送刪除請求至雲端
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'deleteAppointment',
+          id: targetIdStr
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (!res || !res.success) {
+          throw new Error(res ? res.message : "刪除失敗");
+        }
+      })
+      .catch(err => {
+        alert("刪除失敗，已恢復資料！");
+        rawAppointments.splice(deletedIndex, 0, backupEvent);
+        saveToLocalCache();
+        renderCalendars();
+      })
+      .finally(() => {
+        unlockOperationWithDelay(3000);
+      });
+    }
   }
-}
 
   function updateAllUI() {
     renderManagementTags();
@@ -2255,21 +2201,15 @@ function confirmDeleteAppointment(id, event, infoStr) {
     saveToLocalCache();
     renderCalendars();
 
-    const payload = {
-      action: 'addAppointment',
-      eventData: eventData
-    };
-
-    if (!navigator.onLine) {
-      addToOfflineQueue({ payload: payload });
-      unlockOperationWithDelay(2000);
-      return;
-    }
-
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'addAppointment',
+        eventData: eventData
+      })
     })
     .then(res => res.json())
     .then(result => {
@@ -2283,10 +2223,13 @@ function confirmDeleteAppointment(id, event, infoStr) {
       }
     })
     .catch(err => {
-      addToOfflineQueue({ payload: payload });
+      alert("新增失敗，已移除該筆預約！");
+      rawAppointments = rawAppointments.filter(evt => evt.id !== tempId);
+      saveToLocalCache();
+      renderCalendars();
     })
     .finally(() => {
-      unlockOperationWithDelay(10000);
+      unlockOperationWithDelay(3000);
     });
   }
 
@@ -2341,7 +2284,6 @@ function confirmDeleteAppointment(id, event, infoStr) {
 
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'deleteAppointmentsBatch',
           ids: targetIds
@@ -2358,7 +2300,7 @@ function confirmDeleteAppointment(id, event, infoStr) {
         console.error(err);
       })
       .finally(() => {
-        unlockOperationWithDelay(8000);
+        unlockOperationWithDelay(3000);
       });
     }
   }
